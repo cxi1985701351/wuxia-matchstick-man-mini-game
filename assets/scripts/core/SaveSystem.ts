@@ -25,6 +25,8 @@ export function createDefaultState(): PlayerState {
         fragments: {},
         maxTowerFloor: 0,
         kills: 0,
+        flags: {},
+        questItems: [],
     };
 }
 

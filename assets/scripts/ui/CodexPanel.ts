@@ -122,7 +122,7 @@ export class CodexPanel extends Component {
         if (this.titleLabel) this.titleLabel.string = '武 功 图 鉴';
 
         makeInkLabel(this.contentRoot!, '选择武器查看对应武功', {
-            x: 0, y: 190, fontSize: 18, color: '#B8B09A', w: 500, h: 26,
+            x: 0, y: 212, fontSize: 18, color: '#B8B09A', w: 500, h: 26,
         });
 
         const opts: { label: string; key: 'all' | WeaponType }[] = [
@@ -132,12 +132,14 @@ export class CodexPanel extends Component {
             { label: '琴', key: WeaponType.Guqin },
             { label: '刀', key: WeaponType.Blade },
             { label: '枪', key: WeaponType.Spear },
+            { label: '伞', key: WeaponType.Umbrella },
+            { label: '拳', key: WeaponType.Fist },
         ];
         opts.forEach((o, i) => {
             const col = i % 2;
             const row = Math.floor(i / 2);
             makeInkButton(this.contentRoot!, o.label, {
-                x: -150 + col * 300, y: 110 - row * 90, w: 270, h: 64, fontSize: 20, bold: true,
+                x: -150 + col * 300, y: 140 - row * 80, w: 270, h: 64, fontSize: 20, bold: true,
                 bgColor: '#4A3B2A', borderColor: '#C9B896', textColor: '#F0E6CE',
                 onClick: () => {
                     this.weaponFilter = o.key;

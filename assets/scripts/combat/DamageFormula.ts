@@ -79,4 +79,6 @@ export const WEAPON_NAMES: Record<WeaponType, string> = {
     [WeaponType.Guqin]: '琴',
     [WeaponType.Blade]: '刀',
     [WeaponType.Spear]: '枪',
+    [WeaponType.Umbrella]: '伞',
+    [WeaponType.Fist]: '拳',
 };

@@ -2,7 +2,7 @@ import { WeaponDef, WeaponType } from './GameTypes.ts';
 
 /**
  * 墨江湖 - 武器配置表
- * 剑/弓/琴/刀/枪，决定基础攻击、攻击距离与可用武功（回合制无攻速）。
+ * 剑/弓/琴/刀/枪/伞/拳，决定基础攻击、攻击距离与可用武功（回合制无攻速）。
  */
 export const WEAPONS: Record<string, WeaponDef> = {
     sword: {
@@ -34,6 +34,18 @@ export const WEAPONS: Record<string, WeaponDef> = {
         desc: '玄铁枪杆，一丈之内唯我独尊。',
         atk: 10, range: 220,
         source: '华山剑圣赠送',
+    },
+    umbrella: {
+        id: 'umbrella', name: '铁骨伞', type: WeaponType.Umbrella,
+        desc: '铁骨为骨，油纸为面；伞开可御，伞合为刃。',
+        atk: 9, range: 150,
+        source: '血衣阁掌门授予',
+    },
+    fist: {
+        id: 'fist', name: '两仪拳套', type: WeaponType.Fist,
+        desc: '赤手缠丝，阴阳相济；拳出无形，身法如风。',
+        atk: 5, range: 100, spdMod: 40, dodgeMod: 0.05,
+        source: '两仪门掌门授予',
     },
 };
 

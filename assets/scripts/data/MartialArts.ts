@@ -2,7 +2,7 @@ import { MartialArtDef, MartialType, WeaponType } from './GameTypes.ts';
 
 /**
  * 墨江湖 - 武学配置表
- * 内功(6) + 轻功(6) + 基础武功(5，作为普攻不占槽) + 进阶武功(15，每武器3招可装备)
+ * 内功(6) + 轻功(6) + 基础武功(7，作为普攻不占槽) + 进阶武功(21，每武器3招可装备)
  *
  * 数值平衡原则：
  * 普攻不耗内；进阶武功平均回合伤害随 CD 递增：
@@ -245,6 +245,60 @@ export const MARTIAL_ARTS: Record<string, MartialArtDef> = {
         desc: '枪影万千如百鸟归巢，三连刺。',
         skill: { id: 'bainiaoqiangjue', name: '百鸟枪决', multiplier: 2.5, cooldown: 3, mpCost: 45, range: 250, hitCount: 3, fx: 'thrust' },
         source: '华山剑圣残页 x3 / 塔 18 层奖励',
+    },
+
+    // ============ 进阶武功：伞（基础普攻1.0，血衣阁）============
+    yusanren: {
+        id: 'yusanren', name: '伞刃', type: MartialType.WuGong, weapon: WeaponType.Umbrella,
+        desc: '伞合为刃，刃出无声。持伞时的普攻。',
+        skill: { id: 'yusanren', name: '伞刃', multiplier: 1.0, cooldown: 0, mpCost: 0, range: 150, hitCount: 1, fx: 'spin' },
+        isBasic: true,
+        source: '血衣阁拜师',
+    },
+    sanyingsandie: {
+        id: 'sanyingsandie', name: '伞影三叠', type: MartialType.WuGong, weapon: WeaponType.Umbrella,
+        desc: '伞影三叠，虚实难辨，二段连击。',
+        skill: { id: 'sanyingsandie', name: '伞影三叠', multiplier: 1.4, cooldown: 1, mpCost: 15, range: 155, hitCount: 2, fx: 'spin' },
+        source: '血衣阁拜师',
+    },
+    xueyupiaoling: {
+        id: 'xueyupiaoling', name: '血雨飘零', type: MartialType.WuGong, weapon: WeaponType.Umbrella,
+        desc: '伞开如血雨，中者血毒入体，绵绵不绝。',
+        skill: { id: 'xueyupiaoling', name: '血雨飘零', multiplier: 2.0, cooldown: 2, mpCost: 28, range: 160, hitCount: 2, poison: 0.12, fx: 'spin' },
+        source: '问道塔 6 层奖励',
+    },
+    mihunshanyan: {
+        id: 'mihunshanyan', name: '迷魂伞烟', type: MartialType.WuGong, weapon: WeaponType.Umbrella,
+        desc: '伞旋烟迷，中者神魂颠倒，身中剧毒。',
+        skill: { id: 'mihunshanyan', name: '迷魂伞烟', multiplier: 1.9, cooldown: 3, mpCost: 45, range: 170, hitCount: 3, stun: 1, poison: 0.08, fx: 'spin' },
+        source: '问道塔 11 层奖励',
+    },
+
+    // ============ 进阶武功：拳（基础普攻1.0，两仪门）============
+    chongquan: {
+        id: 'chongquan', name: '冲拳', type: MartialType.WuGong, weapon: WeaponType.Fist,
+        desc: '直来直去，一拳破空。赤手时的普攻。',
+        skill: { id: 'chongquan', name: '冲拳', multiplier: 1.0, cooldown: 0, mpCost: 0, range: 100, hitCount: 1, fx: 'punch' },
+        isBasic: true,
+        source: '两仪门拜师',
+    },
+    taijichansi: {
+        id: 'taijichansi', name: '太极缠丝', type: MartialType.WuGong, weapon: WeaponType.Fist,
+        desc: '缠丝劲吞吐，中者如陷泥沼。',
+        skill: { id: 'taijichansi', name: '太极缠丝', multiplier: 1.3, cooldown: 1, mpCost: 15, range: 105, hitCount: 2, slow: 0.25, fx: 'punch' },
+        source: '两仪门拜师',
+    },
+    sixiangbengquan: {
+        id: 'sixiangbengquan', name: '四象崩拳', type: MartialType.WuGong, weapon: WeaponType.Fist,
+        desc: '四象之力，连环崩击，拳拳到肉。',
+        skill: { id: 'sixiangbengquan', name: '四象崩拳', multiplier: 1.2, cooldown: 2, mpCost: 28, range: 110, hitCount: 4, fx: 'punch' },
+        source: '问道塔 9 层奖励',
+    },
+    yinyangheji: {
+        id: 'yinyangheji', name: '阴阳合击', type: MartialType.WuGong, weapon: WeaponType.Fist,
+        desc: '阴阳相济，合击必中，破甲裂防。',
+        skill: { id: 'yinyangheji', name: '阴阳合击', multiplier: 2.2, cooldown: 3, mpCost: 45, range: 115, hitCount: 3, trueStrike: true, armorBreak: 0.15, fx: 'punch' },
+        source: '问道塔 13 层奖励',
     },
 };
 

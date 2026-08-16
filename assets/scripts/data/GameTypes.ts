@@ -17,6 +17,8 @@ export enum WeaponType {
     Guqin = 'guqin',  // 琴
     Blade = 'blade',  // 刀
     Spear = 'spear',  // 枪
+    Umbrella = 'umbrella', // 伞（血衣阁）
+    Fist = 'fist',    // 拳（两仪门）
 }
 
 /** 属性修正（武学/武器提供的属性加成） */
@@ -64,8 +66,10 @@ export interface SkillDef {
     aoe?: number;
     /** 降低目标防御比例(0-1)，持续 2 回合 */
     armorBreak?: number;
+    /** 中毒：每回合造成 攻击方 atk × poison 伤害，持续 2 回合（施放时固化伤害值） */
+    poison?: number;
     /** 特效类型 */
-    fx?: 'slash' | 'arrow' | 'wave' | 'thrust' | 'smash';
+    fx?: 'slash' | 'arrow' | 'wave' | 'thrust' | 'smash' | 'spin' | 'punch';
 }
 
 /** 武学定义 */
@@ -98,6 +102,10 @@ export interface WeaponDef {
     atk: number;
     /** 攻击距离(px)（仅数值展示） */
     range: number;
+    /** 速度修正（影响回合先后手，默认 0） */
+    spdMod?: number;
+    /** 闪避修正(0-1，默认 0) */
+    dodgeMod?: number;
     /** 获取途径描述 */
     source?: string;
 }
@@ -128,6 +136,12 @@ export interface NpcDef {
     skillIds: string[];
     /** 水墨剪影色调（0-1 墨色深浅） */
     inkTone?: number;
+    /** 角色身份（第一章流程用） */
+    role?: 'master' | 'recruiter' | 'disciple' | 'villager' | 'townsfolk' | 'stump';
+    /** 所属门派 id（Sects.ts） */
+    sectId?: string;
+    /** 所属区域 id（第一章区域制；带 region 的 NPC 在区域系统落地前不生成） */
+    region?: string;
 }
 
 /** 塔层定义 */
@@ -189,4 +203,45 @@ export interface PlayerState {
     maxTowerFloor: number;
     /** 累计击杀 */
     kills: number;
+    /** 剧情/任务进度标记 */
+    flags: Record<string, boolean>;
+    /** 剧情物品（玉佩/无字信等） */
+    questItems: string[];
+    /** 已入门派 id */
+    sectId?: string;
+    /** 门派称号 */
+    sectTitle?: string;
+}
+
+/** 任务目标（清单打勾项） */
+export interface QuestTarget {
+    text: string;
+    /** 达成标记（PlayerState.flags 键） */
+    flag: string;
+}
+
+/** 任务定义（任务日志，Q 键） */
+export interface QuestDef {
+    id: string;
+    title: string;
+    desc: string;
+    targets: QuestTarget[];
+    /** 完成后激活的下一个任务 id */
+    next?: string;
+}
+
+/** 门派定义（第一章） */
+export interface SectDef {
+    id: string;
+    name: string;
+    /** 门派武器 */
+    weapon: WeaponType;
+    /** 掌门 NPC id */
+    masterId: string;
+    /** 首席弟子（招募者）NPC id */
+    recruiterId: string;
+    /** 门派称号 */
+    title: string;
+    /** 庭院区域 id */
+    regionId: string;
 }

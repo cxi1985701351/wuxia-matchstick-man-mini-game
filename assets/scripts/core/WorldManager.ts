@@ -180,6 +180,8 @@ export class WorldManager extends Component {
     private spawnNpcs(): void {
         for (const key of Object.keys(NPCS)) {
             const def = NPCS[key];
+            // 第一章区域制 NPC（带 region）在区域系统（P2）落地前不生成
+            if (def.region) continue;
             this.spawnNpc(def);
         }
         // 塔入口
