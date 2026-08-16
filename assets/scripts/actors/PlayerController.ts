@@ -55,10 +55,7 @@ export class PlayerController extends Component {
     }
 
     /** 攻击（仅大世界演示用；战斗中走回合制指令面板） */
-    private get attackCd(): number {
-        const stats = GameManager.inst.stats;
-        return stats ? 1.0 / stats.atkSpd : 1.0;
-    }
+    private attackCd: number = 0.5;
 
     tryAttack(): void {
         // 战斗中不响应即时攻击（回合制）

@@ -62,6 +62,8 @@ export class GameManager extends Component {
     equipMartial(martialId: string, slot: 'neigong' | 'qinggong' | 'wugong', index?: number): boolean {
         const ma = MARTIAL_ARTS[martialId];
         if (!ma || !this.state.ownedMartials.includes(martialId)) return false;
+        // 基础武学作为普攻，不可装备到槽位
+        if (ma.isBasic) return false;
         const s = this.state;
         if (slot === 'neigong' && ma.type === 'neigong') {
             s.equipped.neigong = martialId;

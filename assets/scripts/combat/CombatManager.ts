@@ -4,7 +4,7 @@ import { DamageFormula, DamageResult } from './DamageFormula.ts';
 import { GameManager } from '../core/GameManager.ts';
 import { EventBus, Events } from '../core/EventBus.ts';
 import { NpcDef, SkillDef, WeaponType, FighterStats } from '../data/GameTypes.ts';
-import { MARTIAL_ARTS } from '../data/MartialArts.ts';
+import { MARTIAL_ARTS, getBasicWugong } from '../data/MartialArts.ts';
 import { getWeaponById } from '../data/Weapons.ts';
 import { StatCalculator } from './StatCalculator.ts';
 import { InkEffects } from '../art/InkEffects.ts';
@@ -105,14 +105,17 @@ export class CombatManager extends Component {
                 maxHp: Math.round(enemyStats.maxHp * 0.85), hp: Math.round(enemyStats.maxHp * 0.85),
                 maxMp: enemyStats.maxMp, mp: enemyStats.maxMp,
                 atk: Math.round(enemyStats.atk * 0.8), def: enemyStats.def,
-                spd: enemyStats.spd * 0.85, atkSpd: enemyStats.atkSpd * 0.9,
+                spd: enemyStats.spd * 0.85,
                 dodge: enemyStats.dodge, crit: enemyStats.crit,
                 mpRegen: enemyStats.mpRegen, hpRegen: 0,
                 cdReduce: 0, dashCd: 1.5,
             },
             weapon: npc.weapon,
             weaponRange: npcWeapon.range,
-            skills: npc.skillIds.map((id) => MARTIAL_ARTS[id]?.skill).filter((x): x is SkillDef => !!x),
+            skills: npc.skillIds
+                .map((id) => MARTIAL_ARTS[id]?.skill)
+                .filter((x): x is SkillDef => !!x && (MARTIAL_ARTS[x.id]?.isBasic !== true)),
+            basicSkill: getBasicWugong(npc.weapon)?.skill,
             passives: [],
             isPlayer: false,
         };
@@ -133,14 +136,17 @@ export class CombatManager extends Component {
                 maxHp: Math.round(base.maxHp * 0.85 * sc), hp: Math.round(base.maxHp * 0.85 * sc),
                 maxMp: Math.round(base.maxMp * sc), mp: Math.round(base.maxMp * sc),
                 atk: Math.round(base.atk * 0.8 * sc), def: Math.round(base.def * sc),
-                spd: base.spd * (0.85 + 0.1 * sc), atkSpd: base.atkSpd * 0.9,
+                spd: base.spd * (0.85 + 0.1 * sc),
                 dodge: Math.min(0.3, base.dodge + (sc - 1) * 0.02),
                 crit: Math.min(0.4, base.crit + (sc - 1) * 0.02),
                 mpRegen: base.mpRegen, hpRegen: 0,
                 cdReduce: 0, dashCd: 1.5,
             },
             weapon: towerDef.weapon, weaponRange: towerWeapon.range,
-            skills: towerDef.skillIds.map((id) => MARTIAL_ARTS[id]?.skill).filter((x): x is SkillDef => !!x),
+            skills: towerDef.skillIds
+                .map((id) => MARTIAL_ARTS[id]?.skill)
+                .filter((x): x is SkillDef => !!x && (MARTIAL_ARTS[x.id]?.isBasic !== true)),
+            basicSkill: getBasicWugong(towerDef.weapon)?.skill,
             passives: [], isPlayer: false,
         };
         const enemy = new BattleEntity(enemyData);
@@ -162,6 +168,7 @@ export class CombatManager extends Component {
             weapon: weapon.type,
             weaponRange: weapon.range,
             skills: equippedSkills,
+            basicSkill: getBasicWugong(weapon.type)?.skill,
             passives: this.collectPassives(),
             isPlayer: true,
         };
@@ -276,9 +283,10 @@ export class CombatManager extends Component {
         const p = this.player;
         const e = this.enemy;
         if (action.type === 'basic') {
-            this.spawnFloat(p.pos, '剑', '#2B2B2B');
+            // 普攻使用武器对应的基础武学（不占槽、无冷却、不耗内）
+            this.spawnFloat(p.pos, p.data.basicSkill?.name ?? '普攻', '#2B2B2B');
             this.playerStick?.play(StickPose.Attack, 0.4);
-            this.resolveHit(p, e, null);
+            this.resolveHit(p, e, p.data.basicSkill ?? null);
         } else if (action.type === 'skill') {
             this.playerStick?.play(StickPose.Cast, 0.5);
             this.castSkillEntity(p, e, action.skill);
@@ -303,7 +311,7 @@ export class CombatManager extends Component {
         }
         if (action.type === 'basic') {
             this.enemyStick?.play(StickPose.Attack, 0.4);
-            this.resolveHit(e, p, null);
+            this.resolveHit(e, p, e.data.basicSkill ?? null);
         } else if (action.type === 'skill') {
             this.enemyStick?.play(StickPose.Cast, 0.5);
             this.castSkillEntity(e, p, action.skill);
@@ -321,7 +329,7 @@ export class CombatManager extends Component {
             EventBus.emit(Events.TOAST, '内力不足或冷却中');
             return;
         }
-        actor.castSkill(skill);
+        actor.castSkill(skill, this.turn);
         // 特效
         this.spawnSkillFx(skill, target.pos, actor.facing);
         // 多段伤害
@@ -372,6 +380,10 @@ export class CombatManager extends Component {
         }
         target.hp -= finalDamage;
         target.applyEffects(result);
+        // 吸血（按最终伤害比例回复攻击方气血）
+        if (skill?.lifesteal && finalDamage > 0) {
+            attacker.hp += finalDamage * skill.lifesteal;
+        }
         // 反震被动（龟息功）
         if (attacker.data.passives.includes('counter') && result.damage > 0 && !attacker.data.isPlayer) {
             attacker.hp -= 3;
@@ -431,9 +443,9 @@ export class CombatManager extends Component {
     private endTurn(): void {
         if (!this.inBattle) return;
         this.turnInProgress = true;
-        // 回合结束：回复/冷却递减
-        this.player?.tickTurn();
-        this.enemy?.tickTurn();
+        // 回合结束：回复/冷却递减（本回合刚释放的技能不递减）
+        this.player?.tickTurn(this.turn);
+        this.enemy?.tickTurn(this.turn);
         EventBus.emit(Events.TURN_END, this.turn);
         // 下一回合
         this.turn += 1;

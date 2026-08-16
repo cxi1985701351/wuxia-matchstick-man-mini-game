@@ -15,7 +15,7 @@ export interface BattleEntityData {
         maxHp: number; hp: number;
         maxMp: number; mp: number;
         atk: number; def: number;
-        spd: number; atkSpd: number;
+        spd: number;
         dodge: number; crit: number;
         mpRegen: number; hpRegen: number;
         cdReduce: number; dashCd: number;
@@ -24,8 +24,10 @@ export interface BattleEntityData {
     weapon: WeaponType;
     /** 武器射程 */
     weaponRange: number;
-    /** 可用技能列表（武功，普攻单独处理） */
+    /** 可用技能列表（进阶武功，普攻单独处理） */
     skills: SkillDef[];
+    /** 普攻武学（武器对应的基础武学，不占槽、无冷却） */
+    basicSkill?: SkillDef;
     /** 被动标记 */
     passives: string[];
     /** 是否是玩家 */
@@ -44,10 +46,14 @@ export class BattleEntity {
 
     /** 技能剩余冷却（回合数） */
     skillCds: Record<string, number> = {};
+    /** 技能释放所在回合（本回合结束时跳过冷却递减） */
+    skillCastTurn: Record<string, number> = {};
     /** 减速剩余回合 */
     slowTimer: number = 0;
     /** 眩晕剩余回合 */
     stunTimer: number = 0;
+    /** 待生效眩晕（下回合起算） */
+    pendingStun: number = 0;
     /** 破甲剩余回合（防御降低比例） */
     armorBreakTimer: number = 0;
     armorBreakRate: number = 0;
@@ -85,40 +91,49 @@ export class BattleEntity {
         return this.mp >= skill.mpCost && (this.skillCds[skill.id] ?? 0) <= 0;
     }
 
-    /** 释放技能：扣除内力、设置冷却回合数 */
-    castSkill(skill: SkillDef): number {
+    /** 释放技能：扣除内力、设置冷却回合数（记录释放回合，避免当回合递减） */
+    castSkill(skill: SkillDef, currentTurn: number): number {
         this.mp -= skill.mpCost;
         const cd = Math.max(0, Math.round(skill.cooldown * (1 - this.data.stats.cdReduce)));
         this.skillCds[skill.id] = cd;
+        this.skillCastTurn[skill.id] = currentTurn;
         EventBus.emit(Events.BATTLE_SKILL_USED, this.data.id, skill.id);
         return cd;
     }
 
     /** 每回合结束：回复内力/气血、递减冷却与效果、清除防御 */
-    tickTurn(): void {
+    tickTurn(currentTurn: number): void {
         const s = this.data.stats;
         // 内力回复（每回合）
         this.mp += s.mpRegen * 2;
         // 气血回复（每回合）
         if (s.hpRegen > 0 && this.hp > 0) this.hp += s.hpRegen * 0.05 * s.maxHp;
-        // 冷却递减
+        // 冷却递减（本回合刚释放的技能不递减，保证 CD1=隔1回合可用）
         for (const k of Object.keys(this.skillCds)) {
-            if (this.skillCds[k] > 0) this.skillCds[k] -= 1;
+            if (this.skillCds[k] > 0 && this.skillCastTurn[k] !== currentTurn) {
+                this.skillCds[k] -= 1;
+            }
         }
         if (this.slowTimer > 0) this.slowTimer -= 1;
-        if (this.stunTimer > 0) this.stunTimer -= 1;
         if (this.armorBreakTimer > 0) {
             this.armorBreakTimer -= 1;
             if (this.armorBreakTimer <= 0) this.armorBreakRate = 0;
+        }
+        // 眩晕：待生效的在下回合开始前转入（转入当回合不递减，保证"下回合眩晕"）
+        if (this.pendingStun > 0) {
+            this.stunTimer = Math.max(this.stunTimer, this.pendingStun);
+            this.pendingStun = 0;
+        } else if (this.stunTimer > 0) {
+            this.stunTimer -= 1;
         }
         // 防御只持续本回合
         this.defending = false;
     }
 
-    /** 受击：施加减速/眩晕/破甲（回合制持续） */
+    /** 受击：施加减速/眩晕/破甲（回合制持续；眩晕下回合生效） */
     applyEffects(res: { slow?: number; stun?: number; armorBreak?: number }): void {
         if (res.slow) this.slowTimer = 2;
-        if (res.stun) this.stunTimer = Math.max(1, Math.round(res.stun));
+        if (res.stun) this.pendingStun = Math.max(1, Math.round(res.stun));
         if (res.armorBreak) {
             this.armorBreakRate = res.armorBreak;
             this.armorBreakTimer = 2;

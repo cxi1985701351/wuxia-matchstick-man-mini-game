@@ -23,7 +23,7 @@ export class MartialPanel extends Component {
     private root: Node | null = null;
     private statLabel: Label | null = null;
     private listRoot: Node | null = null;
-    private currentTab: 'neigong' | 'qinggong' | 'wugong' = 'wugong';
+    private currentTab: 'neigong' | 'qinggong' | 'wugong' | 'bag' = 'wugong';
     private weaponRoot: Node | null = null;
 
     onLoad(): void {
@@ -76,10 +76,11 @@ export class MartialPanel extends Component {
             { label: '武 功', key: 'wugong' as const },
             { label: '内 功', key: 'neigong' as const },
             { label: '轻 功', key: 'qinggong' as const },
+            { label: '行 囊', key: 'bag' as const },
         ];
         tabDefs.forEach((tab, i) => {
             makeInkButton(tabs, tab.label, {
-                x: i * 120 - 120, y: 0, w: 108, h: 44, fontSize: 18,
+                x: i * 110 - 165, y: 0, w: 100, h: 44, fontSize: 18,
                 bgColor: '#4A3B2A', borderColor: '#C9B896', textColor: '#F0E6CE',
                 onClick: () => this.switchTab(tab.key),
             });
@@ -122,7 +123,7 @@ export class MartialPanel extends Component {
         });
     }
 
-    private switchTab(tab: 'neigong' | 'qinggong' | 'wugong'): void {
+    private switchTab(tab: 'neigong' | 'qinggong' | 'wugong' | 'bag'): void {
         this.currentTab = tab;
         this.refresh();
     }
@@ -145,7 +146,6 @@ export class MartialPanel extends Component {
             `攻击：${st.atk}\n` +
             `防御：${st.def}\n` +
             `移速：${st.spd}\n` +
-            `攻速：${st.atkSpd.toFixed(2)}\n` +
             `闪避：${(st.dodge * 100).toFixed(0)}%\n` +
             `暴击：${(st.crit * 100).toFixed(0)}%\n` +
             `内力回复：${st.mpRegen.toFixed(1)}/s\n\n` +
@@ -163,6 +163,12 @@ export class MartialPanel extends Component {
         const gm = GameManager.inst;
         const s = gm.state;
 
+        // 行囊标签页：残篇 + 物品
+        if (this.currentTab === 'bag') {
+            this.refreshBagList(list, gm);
+            return;
+        }
+
         const titleText = this.currentTab === 'wugong' ? '武 功（需与武器匹配）' : this.currentTab === 'neigong' ? '内 功' : '轻 功';
         makeInkLabel(list, titleText, { x: 0, y: 200, fontSize: 18, bold: true, color: '#F0E6CE', w: 440, h: 26 });
 
@@ -170,6 +176,8 @@ export class MartialPanel extends Component {
         for (const key of Object.keys(MARTIAL_ARTS)) {
             const ma = MARTIAL_ARTS[key];
             if (ma.type !== this.currentTab) continue;
+            // 武功页：基础武学作为普攻不显示、不占槽
+            if (this.currentTab === 'wugong' && ma.isBasic) continue;
             if (this.currentTab === 'wugong' && ma.weapon !== WEAPONS[s.weaponId].type) continue;
             const equipped =
                 (this.currentTab === 'neigong' && s.equipped.neigong === key) ||
@@ -219,8 +227,53 @@ export class MartialPanel extends Component {
         }
     }
 
-    private toggleEquip(item: { id: string; equipped: boolean }): void {
+    /** 行囊页：残篇进度 + 背包物品（残篇限行防重叠） */
+    private refreshBagList(list: Node, gm: any): void {
+        makeInkLabel(list, '行 囊', { x: 0, y: 200, fontSize: 18, bold: true, color: '#F0E6CE', w: 440, h: 26 });
+
+        const fragKeys = Object.keys(gm.state.fragments).filter((k) => (gm.state.fragments[k] ?? 0) > 0);
+        // 残篇最多显示 6 行，其余折叠
+        const MAX_FRAG = 6;
+        const fragLines: string[] = [];
+        if (fragKeys.length === 0) {
+            fragLines.push('【残篇】暂无残页');
+        } else {
+            fragLines.push('【残篇】');
+            const shown = fragKeys.slice(0, MAX_FRAG);
+            for (const k of shown) {
+                const ma = MARTIAL_ARTS[k];
+                fragLines.push(` ·${ma?.name ?? k} 残页 ${gm.state.fragments[k]}/3`);
+            }
+            if (fragKeys.length > MAX_FRAG) {
+                fragLines.push(` … 其余 ${fragKeys.length - MAX_FRAG} 份残页`);
+            }
+        }
+        // 武器
+        const weaponLines: string[] = ['【武器】'];
+        for (const wid of gm.state.ownedWeapons) {
+            const w = WEAPONS[wid];
+            weaponLines.push(` ·${w.name}（${WEAPON_NAMES[w.type]}）${gm.state.weaponId === wid ? ' ★装备中' : ''}`);
+        }
+        // 战绩
+        weaponLines.push(`【战绩】击杀 ${gm.state.kills} 人，问道塔 ${gm.state.maxTowerFloor}/20 层`);
+
+        // 残篇区（上方）
+        const fragLabel = makeInkLabel(list, fragLines.join('\n'), {
+            x: 0, y: 130, fontSize: 15, color: '#E8DCC0', w: 460, h: 150,
+        });
+        fragLabel.lineHeight = 24;
+        fragLabel.verticalAlign = Label.VerticalAlign.TOP;
+        // 武器/战绩区（下方，与残篇区分离不重叠）
+        const weaponLabel = makeInkLabel(list, weaponLines.join('\n'), {
+            x: 0, y: -40, fontSize: 15, color: '#D8CEB4', w: 460, h: 140,
+        });
+        weaponLabel.lineHeight = 24;
+        weaponLabel.verticalAlign = Label.VerticalAlign.TOP;
+    }
+
+        private toggleEquip(item: { id: string; equipped: boolean }): void {
         const gm = GameManager.inst;
+        if (this.currentTab === 'bag') return; // 行囊页无装备操作
         const slot = this.currentTab === 'wugong' ? 'wugong' as const : this.currentTab;
         if (item.equipped) {
             if (slot === 'wugong') {

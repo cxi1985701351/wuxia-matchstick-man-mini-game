@@ -10,7 +10,6 @@ export interface DamageResult {
     slow?: number;
     stun?: number;
     armorBreak?: number;
-    knockback?: number;
 }
 
 export interface DamageContext {
@@ -32,13 +31,13 @@ export interface DamageContext {
  */
 export class DamageFormula {
     static roll(ctx: DamageContext): DamageResult {
-        // 1. 闪避判定
-        if (Math.random() < ctx.dodge) {
+        const skill = ctx.skill ?? null;
+        // 1. 闪避判定（必中技能跳过）
+        if (!skill?.trueStrike && Math.random() < ctx.dodge) {
             return { damage: 0, isCrit: false, isDodge: true, isHit: false };
         }
 
         // 2. 基础伤害
-        const skill = ctx.skill ?? null;
         const mult = skill?.multiplier ?? 1.0;
         const ignoreDef = skill?.ignoreDef ?? 0;
         const effDef = ctx.def * (1 - ignoreDef);
@@ -63,7 +62,6 @@ export class DamageFormula {
             slow: skill?.slow,
             stun: skill?.stun,
             armorBreak: skill?.armorBreak,
-            knockback: skill?.knockback,
         };
         return result;
     }

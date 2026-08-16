@@ -16,6 +16,7 @@ import { NpcDialog } from '../ui/NpcDialog.ts';
 import { BattleOverPanel } from '../ui/BattleOverPanel.ts';
 import { BattleArena } from '../ui/BattleArena.ts';
 import { MartialPanel } from '../ui/MartialPanel.ts';
+import { CodexPanel } from '../ui/CodexPanel.ts';
 import { TowerPanel } from '../ui/TowerPanel.ts';
 import { Toast } from '../ui/Toast.ts';
 import { getWeaponById } from '../data/Weapons.ts';
@@ -54,6 +55,7 @@ export class WorldManager extends Component {
     private battleOver: BattleOverPanel | null = null;
     private battleArena: BattleArena | null = null;
     private martialPanel: MartialPanel | null = null;
+    private codexPanel: CodexPanel | null = null;
     private towerPanel: TowerPanel | null = null;
     private toast: Toast | null = null;
 
@@ -131,6 +133,7 @@ export class WorldManager extends Component {
         this.battleOver = this.uiRoot.addComponent(BattleOverPanel);
         this.battleArena = this.uiRoot.addComponent(BattleArena);
         this.martialPanel = this.uiRoot.addComponent(MartialPanel);
+        this.codexPanel = this.uiRoot.addComponent(CodexPanel);
         this.towerPanel = this.uiRoot.addComponent(TowerPanel);
         this.toast = this.uiRoot.addComponent(Toast);
 
@@ -214,9 +217,14 @@ export class WorldManager extends Component {
             if (this.mode !== WorldMode.Explore) return;
             this.martialPanel?.toggle();
         }
+        if (e.keyCode === KeyCode.KEY_C) {
+            if (this.mode !== WorldMode.Explore) return;
+            this.codexPanel?.toggle();
+        }
         if (e.keyCode === KeyCode.ESCAPE) {
             if (this.dialog?.isOpen) this.dialog.close();
             else if (this.battleOver?.isOpen) this.battleOver.close();
+            else if (this.codexPanel?.isOpen) this.codexPanel.close();
             else if (this.martialPanel?.isOpen) this.martialPanel.close();
             else if (this.towerPanel?.isOpen) this.towerPanel.close();
             else if (CombatManager.inst.inBattle) {

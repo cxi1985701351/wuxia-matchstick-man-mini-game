@@ -12,7 +12,6 @@ const MOD_NAMES: Record<keyof StatMods, string> = {
     atk: '攻击',
     def: '防御',
     spd: '移速',
-    atkSpd: '攻速',
     dodge: '闪避',
     crit: '暴击',
     mpRegen: '内力回复',
@@ -29,10 +28,8 @@ export function formatMods(mods?: Partial<StatMods>): string {
         const v = mods[key];
         if (v === undefined || v === 0) continue;
         const name = MOD_NAMES[key] ?? key;
-        // 百分比类（闪避/暴击/攻速/冷却缩减）用百分号，其余直接数值
+        // 百分比类（闪避/暴击）用百分号，其余直接数值
         if (key === 'dodge' || key === 'crit') {
-            parts.push(`${name}+${(v * 100).toFixed(0)}%`);
-        } else if (key === 'atkSpd') {
             parts.push(`${name}+${(v * 100).toFixed(0)}%`);
         } else if (key === 'cdReduce' || key === 'dashCd') {
             parts.push(`${name}-${(v * 100).toFixed(0)}%`);
@@ -57,23 +54,24 @@ export function formatPassives(passives?: string[]): string {
     return passives.map((p) => PASSIVE_NAMES[p] ?? p).join('，');
 }
 
-/** 格式化技能效果：倍率/冷却/消耗/射程/特殊效果 */
+/** 格式化技能效果：倍率/冷却/消耗/特殊效果 */
 export function formatSkill(skill?: SkillDef): string {
     if (!skill) return '';
     const parts: string[] = [];
+    // 总伤害 = 单段倍率 × 段数
+    const total = skill.multiplier * skill.hitCount;
     parts.push(`伤害 ${Math.round(skill.multiplier * 100)}%`);
-    if (skill.hitCount > 1) parts.push(`${skill.hitCount} 段`);
+    if (skill.hitCount > 1) parts.push(`${skill.hitCount} 段（共 ${Math.round(total * 100)}%）`);
     parts.push(skill.cooldown > 0 ? `冷却 ${skill.cooldown} 回合` : `冷却 无`);
     parts.push(`耗内 ${skill.mpCost}`);
     const extras: string[] = [];
     if (skill.ignoreDef) extras.push(`无视防御 ${(skill.ignoreDef * 100).toFixed(0)}%`);
-    if (skill.knockback) extras.push(`击退 ${skill.knockback}`);
     if (skill.slow) extras.push(`减速 ${(skill.slow * 100).toFixed(0)}%`);
     if (skill.stun) extras.push(`眩晕 ${skill.stun} 回合`);
     if (skill.selfHurt) extras.push(`自损 ${(skill.selfHurt * 100).toFixed(0)}%`);
-    if (skill.pierce) extras.push('穿透');
+    if (skill.trueStrike) extras.push('必中');
+    if (skill.lifesteal) extras.push(`吸血 ${(skill.lifesteal * 100).toFixed(0)}%`);
     if (skill.aoe) extras.push(`范围 ${skill.aoe}`);
-    if (skill.dash) extras.push(`突进 ${skill.dash}`);
     if (skill.armorBreak) extras.push(`破甲 ${(skill.armorBreak * 100).toFixed(0)}%`);
     if (extras.length) parts.push(extras.join('、'));
     return parts.join(' ｜ ');

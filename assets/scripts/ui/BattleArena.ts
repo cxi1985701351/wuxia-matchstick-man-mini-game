@@ -193,9 +193,10 @@ export class BattleArena extends Component {
             this.promptLabel.string = '⚔ 请选择指令';
         }
 
-        // 普攻（无距离限制）
-        makeInkButton(this.commandRoot, `⚔ 普攻`, {
-            x: -380, y: 0, w: 150, h: 54, fontSize: 20, bold: true,
+        // 普攻（使用当前武器的基础武学，无距离/冷却限制）
+        const basicName = p.data.basicSkill?.name ?? '普攻';
+        makeInkButton(this.commandRoot, `⚔ ${basicName}`, {
+            x: -380, y: 0, w: 150, h: 54, fontSize: 18, bold: true,
             bgColor: '#4A3B2A',
             borderColor: '#C9B896',
             textColor: '#F5EAD0',

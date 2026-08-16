@@ -1,6 +1,6 @@
 import { sys } from 'cc';
 import { PlayerState } from '../data/GameTypes.ts';
-import { START_MARTIALS } from '../data/MartialArts.ts';
+import { START_MARTIALS, MARTIAL_ARTS } from '../data/MartialArts.ts';
 import { START_WEAPON } from '../data/Weapons.ts';
 
 /**
@@ -17,7 +17,8 @@ export function createDefaultState(): PlayerState {
         equipped: {
             neigong: 'tunajue',
             qinggong: 'jianbugong',
-            wugong: ['jichujianshi', undefined, undefined],
+            // 基础武学作为普攻，不占技能槽；三个槽初始全空
+            wugong: [undefined, undefined, undefined],
         },
         ownedMartials: [...START_MARTIALS],
         ownedWeapons: [START_WEAPON],
@@ -25,6 +26,24 @@ export function createDefaultState(): PlayerState {
         maxTowerFloor: 0,
         kills: 0,
     };
+}
+
+/** 规范化存档：技能槽补足 3 个；基础武学移出槽位（作为普攻） */
+function normalizeWugong(wugong: (string | undefined)[] | undefined): (string | undefined)[] {
+    const slots: (string | undefined)[] = new Array(3).fill(undefined);
+    if (!Array.isArray(wugong)) return slots;
+    let idx = 0;
+    for (const mid of wugong) {
+        if (!mid) continue;
+        const ma = MARTIAL_ARTS[mid];
+        // 基础武学不再占用槽位（作为普攻）
+        if (ma && ma.isBasic) continue;
+        if (idx < 3) {
+            slots[idx] = mid;
+            idx += 1;
+        }
+    }
+    return slots;
 }
 
 export class SaveSystem {
@@ -38,7 +57,12 @@ export class SaveSystem {
             return {
                 ...def,
                 ...parsed,
-                equipped: { ...def.equipped, ...parsed.equipped },
+                equipped: {
+                    ...def.equipped,
+                    ...parsed.equipped,
+                    // 规范化技能槽（基础武学移出、槽位补足3个）
+                    wugong: normalizeWugong(parsed.equipped?.wugong),
+                },
                 fragments: { ...parsed.fragments },
             };
         } catch (e) {

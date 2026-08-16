@@ -26,7 +26,6 @@ export interface StatMods {
     atk: number;       // 攻击加成
     def: number;       // 防御加成
     spd: number;       // 移速加成(px/s)
-    atkSpd: number;    // 攻速加成(倍率, 1=100%)
     dodge: number;     // 闪避率加成(0-1)
     crit: number;      // 暴击率加成(0-1)
     mpRegen: number;   // 内力回复/s
@@ -39,18 +38,16 @@ export interface StatMods {
 export interface SkillDef {
     id: string;
     name: string;
-    /** 伤害倍率（乘以攻击力） */
+    /** 伤害倍率（乘以攻击力，单段） */
     multiplier: number;
-    /** 冷却回合数（回合制：1=下回合可用，2=隔1回合，0=无限制每回合可用） */
+    /** 冷却回合数（回合制：1=隔1回合可用，2=隔2回合，0=无限制） */
     cooldown: number;
     /** 内力消耗 */
     mpCost: number;
-    /** 射程(px)（回合制下用于判定攻击距离） */
+    /** 射程(px)（仅数值展示，回合制无距离判定） */
     range: number;
     /** 连击段数 */
     hitCount: number;
-    /** 击退距离(px) */
-    knockback?: number;
     /** 无视防御比例(0-1) */
     ignoreDef?: number;
     /** 减速比例(0-1)，持续 2 回合 */
@@ -59,12 +56,12 @@ export interface SkillDef {
     stun?: number;
     /** 自损气血比例(0-1) */
     selfHurt?: number;
-    /** 是否穿透 */
-    pierce?: boolean;
-    /** 范围伤害半径(px)，0=单体 */
+    /** 必定命中（无视闪避） */
+    trueStrike?: boolean;
+    /** 吸血比例(0-1)：回复造成伤害的比例 */
+    lifesteal?: number;
+    /** 范围伤害半径(px)，0=单体（1v1 下仅作展示） */
     aoe?: number;
-    /** 是否突进（枪法） */
-    dash?: number;
     /** 降低目标防御比例(0-1)，持续 2 回合 */
     armorBreak?: number;
     /** 特效类型 */
@@ -87,6 +84,8 @@ export interface MartialArtDef {
     skill?: SkillDef;
     /** 获取途径描述 */
     source?: string;
+    /** 是否基础武学（作为普攻使用，不占技能槽） */
+    isBasic?: boolean;
 }
 
 /** 武器定义 */
@@ -97,10 +96,8 @@ export interface WeaponDef {
     desc: string;
     /** 基础攻击 */
     atk: number;
-    /** 攻击距离(px) */
+    /** 攻击距离(px)（仅数值展示） */
     range: number;
-    /** 攻速倍率（越大越快） */
-    atkSpd: number;
     /** 获取途径描述 */
     source?: string;
 }
@@ -163,7 +160,6 @@ export interface FighterStats {
     atk: number;
     def: number;
     spd: number;       // px/s
-    atkSpd: number;    // 攻速倍率
     dodge: number;     // 0-1
     crit: number;      // 0-1
     mpRegen: number;   // /s

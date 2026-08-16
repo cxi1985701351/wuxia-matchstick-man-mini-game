@@ -20,7 +20,7 @@ export class StatCalculator {
     /** 汇总武学属性修正（内功+轻功，武功只算被动类） */
     static collectMods(neigong?: string, qinggong?: string, wugong: (string | undefined)[] = []): StatMods {
         const mods: StatMods = {
-            hp: 0, mp: 0, atk: 0, def: 0, spd: 0, atkSpd: 0,
+            hp: 0, mp: 0, atk: 0, def: 0, spd: 0,
             dodge: 0, crit: 0, mpRegen: 0, hpRegen: 0, cdReduce: 0, dashCd: 0,
         };
         const ids = [neigong, qinggong, ...wugong].filter(Boolean) as string[];
@@ -59,7 +59,6 @@ export class StatCalculator {
             atk: Math.round(base.atk + weapon.atk + mods.atk),
             def: Math.round(base.def + mods.def),
             spd: 220 + mods.spd,
-            atkSpd: Math.max(0.3, weapon.atkSpd + mods.atkSpd),
             dodge: Math.min(0.6, mods.dodge),
             crit: Math.min(0.6, 0.05 + mods.crit),
             mpRegen: 2 + mods.mpRegen,
