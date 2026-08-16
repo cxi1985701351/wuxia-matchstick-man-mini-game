@@ -63,6 +63,38 @@ export class InkEffects extends Component {
         }, 0.25);
     }
 
+    /** 旋伞弧（伞） */
+    static spin(parent: Node, worldPos: Vec3, facing: number): void {
+        InkEffects.make(parent, worldPos, (g) => {
+            g.lineWidth = 3.5;
+            g.strokeColor.fromHEX('#2B2B2B');
+            // 双道旋转圆弧（伞面开合）
+            g.arc(0, 0, 34, facing > 0 ? -1.0 : 1.0, facing > 0 ? 1.0 : 3.0, facing < 0);
+            g.stroke();
+            g.arc(0, 0, 22, facing > 0 ? 2.2 : 0.9, facing > 0 ? 3.8 : 2.5, facing < 0);
+            g.stroke();
+            // 伞骨短线
+            g.moveTo(0, 0); g.lineTo(30 * facing, -6); g.stroke();
+            g.moveTo(0, 0); g.lineTo(-18 * facing, -22); g.stroke();
+        }, 0.3, facing);
+    }
+
+    /** 拳风（拳） */
+    static punch(parent: Node, worldPos: Vec3, facing: number): void {
+        InkEffects.make(parent, worldPos, (g) => {
+            g.lineWidth = 3;
+            g.strokeColor.fromHEX('#2B2B2B');
+            // 拳风短弧线（破空）
+            g.arc(facing * 18, 0, 14, -0.9, 0.9, false);
+            g.stroke();
+            g.arc(facing * 32, 0, 9, -0.8, 0.8, false);
+            g.stroke();
+            // 破空短线
+            g.moveTo(facing * 42, -6); g.lineTo(facing * 54, -2); g.stroke();
+            g.moveTo(facing * 42, 6); g.lineTo(facing * 54, 2); g.stroke();
+        }, 0.22, facing);
+    }
+
     /** 命中墨渍爆开 */
     static hit(parent: Node, worldPos: Vec3, isCrit: boolean): void {
         InkEffects.make(parent, worldPos, (g) => {

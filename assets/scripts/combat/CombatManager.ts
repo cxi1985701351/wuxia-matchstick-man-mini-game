@@ -379,7 +379,7 @@ export class CombatManager extends Component {
             finalDamage = Math.max(1, Math.round(finalDamage * 0.5));
         }
         target.hp -= finalDamage;
-        target.applyEffects(result);
+        target.applyEffects(result, attacker.data.stats.atk);
         // 吸血（按最终伤害比例回复攻击方气血）
         if (skill?.lifesteal && finalDamage > 0) {
             attacker.hp += finalDamage * skill.lifesteal;
@@ -443,13 +443,37 @@ export class CombatManager extends Component {
     private endTurn(): void {
         if (!this.inBattle) return;
         this.turnInProgress = true;
+        // 记录中毒预结算（tickTurn 内扣血，用于飘字）
+        const pPoison = this.player && this.player.poisonTimer > 0 ? this.player.poisonDamage : 0;
+        const ePoison = this.enemy && this.enemy.poisonTimer > 0 ? this.enemy.poisonDamage : 0;
         // 回合结束：回复/冷却递减（本回合刚释放的技能不递减）
         this.player?.tickTurn(this.turn);
         this.enemy?.tickTurn(this.turn);
+        // 中毒结算飘字（墨绿毒字）+ 血条刷新（BATTLE_DAMAGE 驱动 UI）
+        if (pPoison > 0 && this.player) {
+            this.spawnFloat(this.player.pos, `毒 ${pPoison}`, '#4A6B2B', true);
+            EventBus.emit(Events.BATTLE_DAMAGE, this.player.data.id, this.player.data.id, pPoison, false);
+        }
+        if (ePoison > 0 && this.enemy) {
+            this.spawnFloat(this.enemy.pos, `毒 ${ePoison}`, '#4A6B2B', true);
+            EventBus.emit(Events.BATTLE_DAMAGE, this.enemy.data.id, this.enemy.data.id, ePoison, false);
+        }
+        // 中毒致死判定
+        if (this.player && this.player.alive && this.player.hp <= 0) {
+            this.player.alive = false;
+            this.playerStick?.play(StickPose.Dead);
+            this.scheduleOnce(() => this.endBattle(false), 0.8);
+        }
+        if (this.enemy && this.enemy.alive && this.enemy.hp <= 0) {
+            this.enemy.alive = false;
+            this.enemyStick?.play(StickPose.Dead);
+            this.scheduleOnce(() => this.endBattle(true), 0.8);
+        }
         EventBus.emit(Events.TURN_END, this.turn);
-        // 下一回合
+        // 下一回合（双方存活才推进）
         this.turn += 1;
-        this.scheduleOnce(() => this.startTurn(), 0.5);
+        const bothAlive = (this.player?.alive ?? false) && (this.enemy?.alive ?? false);
+        if (bothAlive) this.scheduleOnce(() => this.startTurn(), 0.5);
     }
 
     // ============ 特效与飘字 ============
@@ -463,6 +487,8 @@ export class CombatManager extends Component {
             case 'thrust': InkEffects.thrust(this.fxRoot, world, facing); break;
             case 'smash': InkEffects.smash(this.fxRoot, world); break;
             case 'slash': InkEffects.slash(this.fxRoot, world, facing); break;
+            case 'spin': InkEffects.spin(this.fxRoot, world, facing); break;
+            case 'punch': InkEffects.punch(this.fxRoot, world, facing); break;
         }
     }
 

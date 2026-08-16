@@ -463,3 +463,14 @@ CocosCreator.exe --project D:\shazi\MoJiang --build "platform=web-desktop"
 | 编译必改点 | DamageFormula.WEAPON_NAMES 补伞/拳；CodexPanel 武器筛选 5→7（布局 4 行×2 列防重叠）；SaveSystem 默认值补 flags/questItems；WorldManager 跳过带 region 的 NPC |
 | 验证 | headless Edge + CDP 场景树转储：构建通过、无 JS 异常、图鉴 8 筛选按钮（全部/剑/弓/琴/刀/枪/伞/拳）、伞系列表 3 门武学来源正确、塔层掉落 UI 显示正确、旧 8 NPC 正常、新 NPC 未提前生成 |
 
+### 13.12 开发记录（2026-08-17 第一章 P1 战斗扩展，已完成并验证）
+
+| 项 | 说明 |
+|---|---|
+| 武器速度/闪避修正 | StatCalculator.compute 并入 WeaponDef.spdMod/dodgeMod（两仪拳套 +40 速 / +0.05 闪） |
+| 中毒 DOT | SkillDef.poison（比例）；BattleEntity 新增 poisonTimer/poisonDamage（施放时按攻击方 atk 固化）；tickTurn 回合末结算，持续 2 回合 |
+| 毒伤 UI | DamageResult 透传 poison；CombatManager.endTurn 补发 BATTLE_DAMAGE 驱动血条刷新 + 墨绿「毒 N」飘字 |
+| 毒致死 | endTurn 结算后死亡检查（Dead 动画 + endBattle）；双方存活才推进下一回合 |
+| 新特效 | InkEffects.spin（旋伞弧，伞）/ InkEffects.punch（拳风破空，拳）；spawnSkillFx 新分支 |
+| 验证（headless Edge + 实体状态直读） | 毒 2 跳时序：施放回合末首跳、次回合末次跳、到期消失（timer 2→1→0，每跳 atk×0.12）；毒致死路径：李青山 123 血 → 施放后 35 → 强制 2 血 → 防御 → 次回合末毒跳致死 → 胜利结算；CD 递减 [CD2]→[CD1]→就绪；拳属性：移速 280（+40）、闪避 5%、攻 12（攻低定位）；默认存档启动回归无异常 |
+

@@ -57,6 +57,10 @@ export class BattleEntity {
     /** 破甲剩余回合（防御降低比例） */
     armorBreakTimer: number = 0;
     armorBreakRate: number = 0;
+    /** 中毒剩余回合（每回合结束结算一次伤害） */
+    poisonTimer: number = 0;
+    /** 中毒每回合伤害（施放时按攻击方 atk 固化） */
+    poisonDamage: number = 0;
     /** 本回合防御标记（受到伤害减半） */
     defending: boolean = false;
 
@@ -126,17 +130,28 @@ export class BattleEntity {
         } else if (this.stunTimer > 0) {
             this.stunTimer -= 1;
         }
+        // 中毒：每回合结束结算一次，持续 2 回合
+        if (this.poisonTimer > 0) {
+            this.hp -= this.poisonDamage;
+            this.poisonTimer -= 1;
+            if (this.poisonTimer <= 0) this.poisonDamage = 0;
+        }
         // 防御只持续本回合
         this.defending = false;
     }
 
-    /** 受击：施加减速/眩晕/破甲（回合制持续；眩晕下回合生效） */
-    applyEffects(res: { slow?: number; stun?: number; armorBreak?: number }): void {
+    /** 受击：施加减速/眩晕/破甲/中毒（回合制持续；眩晕下回合生效） */
+    applyEffects(res: { slow?: number; stun?: number; armorBreak?: number; poison?: number }, attackerAtk = 0): void {
         if (res.slow) this.slowTimer = 2;
         if (res.stun) this.pendingStun = Math.max(1, Math.round(res.stun));
         if (res.armorBreak) {
             this.armorBreakRate = res.armorBreak;
             this.armorBreakTimer = 2;
+        }
+        if (res.poison) {
+            // 施放时按攻击方攻击力固化每回合伤害
+            this.poisonDamage = Math.max(1, Math.round(attackerAtk * res.poison));
+            this.poisonTimer = 2;
         }
     }
 

@@ -10,6 +10,8 @@ export interface DamageResult {
     slow?: number;
     stun?: number;
     armorBreak?: number;
+    /** 中毒比例：每回合造成 攻击方atk × poison 伤害，持续 2 回合（施放时固化伤害值） */
+    poison?: number;
 }
 
 export interface DamageContext {
@@ -62,6 +64,7 @@ export class DamageFormula {
             slow: skill?.slow,
             stun: skill?.stun,
             armorBreak: skill?.armorBreak,
+            poison: skill?.poison,
         };
         return result;
     }
