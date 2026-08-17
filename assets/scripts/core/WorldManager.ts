@@ -1,4 +1,4 @@
-import { _decorator, Component, Node, Vec3, input, Input, EventKeyboard, KeyCode, EventMouse, UITransform, Graphics, Label } from 'cc';
+import { _decorator, Component, Node, Vec3, input, Input, EventKeyboard, KeyCode, EventMouse, UITransform, Graphics, Label, Color } from 'cc';
 import { GameManager } from './GameManager.ts';
 import { CombatManager, BattleResult } from '../combat/CombatManager.ts';
 import { PlayerController } from '../actors/PlayerController.ts';
@@ -10,7 +10,8 @@ import { InkBackground } from '../art/InkBackground.ts';
 import { GroundPainter } from '../art/GroundPainter.ts';
 import { EventBus, Events } from './EventBus.ts';
 import { NPCS, TOWER_GATE } from '../data/Npcs.ts';
-import { NpcDef } from '../data/GameTypes.ts';
+import { NpcDef, RegionDef } from '../data/GameTypes.ts';
+import { getRegionById } from '../data/Regions.ts';
 import { HudPanel } from '../ui/HudPanel.ts';
 import { NpcDialog } from '../ui/NpcDialog.ts';
 import { BattleOverPanel } from '../ui/BattleOverPanel.ts';
@@ -59,9 +60,12 @@ export class WorldManager extends Component {
     private towerPanel: TowerPanel | null = null;
     private toast: Toast | null = null;
 
-    /** 地图半宽/半高（世界坐标，地面尺寸） */
-    private readonly mapHalfW = 1000;
-    private readonly mapHalfH = 650;
+    /** 当前区域（区域制） */
+    private currentRegion: RegionDef | null = null;
+    /** 问道塔入口节点（当前区域） */
+    private towerNode: Node | null = null;
+    /** 传送点路标节点（当前区域） */
+    private signNodes: Node[] = [];
 
     /** 战斗边界（半宽/半高） */
     private arenaHalfW = 760;
@@ -87,14 +91,10 @@ export class WorldManager extends Component {
         this.worldRoot = new Node('World');
         sceneRoot.addChild(this.worldRoot);
 
-        // 3. 俯视地面（World 内，跟随镜头滚动）
+        // 3. 俯视地面（World 内，跟随镜头滚动；区域切换时按区域重绘）
         const groundNode = new Node('Ground');
         this.worldRoot.addChild(groundNode);
-        const ground = groundNode.addComponent(GroundPainter);
-        ground.mapHalfW = this.mapHalfW;
-        ground.mapHalfH = this.mapHalfH;
-        ground.drawOnce();
-        this.ground = ground;
+        this.ground = groundNode.addComponent(GroundPainter);
 
         // 4. 特效层 / 飘字层（Canvas 下，固定屏幕空间？不——特效需在世界坐标，放 World 外但跟 World 偏移）
         //    特效与飘字使用世界坐标，放在 World 容器内更合适
@@ -119,8 +119,8 @@ export class WorldManager extends Component {
         cf.target = this.playerNode;
         cf.snap();
 
-        // NPC
-        this.spawnNpcs();
+        // 区域装配（初始：序章村庄）
+        this.enterRegion('village');
 
         // 战斗管理器挂到场景根
         const cm = sceneRoot.getComponent(CombatManager) || sceneRoot.addComponent(CombatManager);
@@ -177,17 +177,68 @@ export class WorldManager extends Component {
         this.playerNode = node;
     }
 
-    private spawnNpcs(): void {
-        for (const key of Object.keys(NPCS)) {
-            const def = NPCS[key];
-            // 第一章区域制 NPC（带 region）在区域系统（P2）落地前不生成
-            if (def.region) continue;
-            this.spawnNpc(def);
+    // ============ 区域装配（第一章区域制） ============
+
+    /** 切换到目标区域：重建地面/NPC、瞬移玩家、更新边界与镜头 */
+    private enterRegion(regionId: string, spawnPos?: { x: number; y: number }): void {
+        const region = getRegionById(regionId);
+        if (!region) return;
+        // 1. 清理旧区域 NPC、塔入口与路标（同步移除，不依赖帧末销毁）
+        for (const a of this.npcActors) {
+            a.node.removeFromParent();
+            a.node.destroy();
         }
-        // 塔入口
+        this.npcActors = [];
+        if (this.towerNode) {
+            this.towerNode.removeFromParent();
+            this.towerNode.destroy();
+            this.towerNode = null;
+        }
+        for (const s of this.signNodes) {
+            s.removeFromParent();
+            s.destroy();
+        }
+        this.signNodes = [];
+        // 2. 地面重绘
+        if (this.ground) this.ground.draw(region);
+        // 3. NPC 实例化
+        this.spawnRegionNpcs(region);
+        // 4. 传送点路标
+        this.spawnSignposts(region);
+        // 5. 玩家瞬移
+        const sp = spawnPos ?? region.spawn ?? { x: 0, y: 0 };
+        if (this.playerNode) this.playerNode.setPosition(sp.x, sp.y, 0);
+        // 6. 镜头边界 + 立即跟随
+        if (this.cameraFollow) {
+            this.cameraFollow.mapHalfW = region.halfW;
+            this.cameraFollow.mapHalfH = region.halfH;
+            this.cameraFollow.snap();
+        }
+        // 7. 远景色调
+        if (this.bgLayer && region.bgTone !== undefined) this.bgLayer.setTone(region.bgTone);
+        this.currentRegion = region;
+        // 8. 任务 flag（P5 任务日志用）
+        if (region.flagOnEnter) GameManager.inst.setFlag(region.flagOnEnter);
+    }
+
+    private spawnRegionNpcs(region: RegionDef): void {
+        for (const inst of region.npcs) {
+            // 问道塔入口（特殊功能节点）
+            if (inst.npcId === 'tower_gate') {
+                this.spawnTowerGate(inst.pos);
+                continue;
+            }
+            const def = NPCS[inst.npcId];
+            if (!def) continue;
+            this.spawnNpc(def, inst.pos, inst.facing);
+        }
+    }
+
+    /** 问道塔入口（主城边界处）：塔造型 + 入口交互 */
+    private spawnTowerGate(pos: { x: number; y: number }): void {
         const towerNode = new Node('TowerGate');
         this.worldRoot!.addChild(towerNode);
-        towerNode.setPosition(TOWER_GATE.pos.x, TOWER_GATE.pos.y, 0);
+        towerNode.setPosition(pos.x, pos.y, 0);
         towerNode.addComponent(UITransform);
         const gateActor = towerNode.addComponent(NpcActor);
         gateActor.init(TOWER_GATE);
@@ -198,15 +249,47 @@ export class WorldManager extends Component {
         g.moveTo(-24, 0); g.lineTo(-24, 80); g.lineTo(0, 110); g.lineTo(24, 80); g.lineTo(24, 0); g.stroke();
         g.moveTo(-16, 20); g.lineTo(16, 20); g.stroke();
         g.moveTo(-16, 50); g.lineTo(16, 50); g.stroke();
+        this.towerNode = towerNode;
     }
 
-    private spawnNpc(def: NpcDef): NpcActor {
+    /** 传送点路标（墨线石碑 + 名称子节点） */
+    private spawnSignposts(region: RegionDef): void {
+        for (const tp of region.teleports) {
+            const node = new Node(`Sign_${tp.id}`);
+            this.worldRoot!.addChild(node);
+            node.setPosition(tp.pos.x, tp.pos.y, 0);
+            const g = node.addComponent(Graphics);
+            g.lineWidth = 3;
+            g.strokeColor.fromHEX('#5A5244');
+            g.moveTo(-14, -10); g.lineTo(14, -10); g.lineTo(14, 16); g.lineTo(-14, 16); g.lineTo(-14, -10); g.stroke();
+            g.moveTo(0, -10); g.lineTo(0, -26); g.stroke();
+            g.moveTo(-14, 3); g.lineTo(14, 3); g.stroke();
+            const labelNode = new Node('label');
+            node.addChild(labelNode);
+            labelNode.setPosition(0, 36, 0);
+            const l = labelNode.addComponent(Label);
+            l.string = tp.label;
+            l.fontSize = 15;
+            l.color = new Color(70, 64, 50, 255);
+            l.isBold = true;
+            l.horizontalAlign = Label.HorizontalAlign.CENTER;
+            labelNode.addComponent(UITransform).setContentSize(240, 24);
+            this.signNodes.push(node);
+        }
+    }
+
+    private spawnNpc(def: NpcDef, pos?: { x: number; y: number }, facing?: number): NpcActor {
         const node = new Node(`Npc_${def.id}`);
         this.worldRoot!.addChild(node);
-        node.setPosition(def.pos.x, def.pos.y, 0);
+        const p = pos ?? def.pos;
+        node.setPosition(p.x, p.y, 0);
         node.addComponent(UITransform);
         const actor = node.addComponent(NpcActor);
         actor.init(def);
+        if (facing !== undefined) {
+            const stick = node.getComponentInChildren(Stickman);
+            if (stick) stick.facing = facing;
+        }
         this.npcActors.push(actor);
         return actor;
     }
@@ -261,11 +344,24 @@ export class WorldManager extends Component {
                 if (d < bestDist) { bestDist = d; nearest = actor; }
             }
         }
-        // 塔入口
-        const towerDist = Vec3.distance(new Vec3(TOWER_GATE.pos.x, TOWER_GATE.pos.y, 0), this.playerNode.position);
-        if (towerDist < 140) {
-            EventBus.emit(Events.TOWER_OPEN);
-            return;
+        // 塔入口（当前区域）
+        if (this.towerNode) {
+            const towerDist = Vec3.distance(this.towerNode.position, this.playerNode.position);
+            if (towerDist < 140) {
+                EventBus.emit(Events.TOWER_OPEN);
+                return;
+            }
+        }
+        // 传送点（当前区域）
+        if (this.currentRegion) {
+            for (const tp of this.currentRegion.teleports) {
+                const d = Vec3.distance(new Vec3(tp.pos.x, tp.pos.y, 0), this.playerNode.position);
+                if (d < (tp.radius ?? 90)) {
+                    this.enterRegion(tp.to, tp.spawn);
+                    EventBus.emit(Events.TOAST, `前往${tp.label}…`);
+                    return;
+                }
+            }
         }
         if (nearest) nearest.interact();
     }
@@ -440,11 +536,13 @@ export class WorldManager extends Component {
         }
         if (!this.playerNode) return;
         const p = this.playerNode.position;
-        // 探索模式：限制在地图边界内
+        // 探索模式：限制在当前区域边界内
         if (this.mode === WorldMode.Explore) {
+            const hw = this.currentRegion ? this.currentRegion.halfW : 600;
+            const hh = this.currentRegion ? this.currentRegion.halfH : 450;
             const clamped = new Vec3(
-                Math.max(-this.mapHalfW + 40, Math.min(this.mapHalfW - 40, p.x)),
-                Math.max(-this.mapHalfH + 40, Math.min(this.mapHalfH - 40, p.y)),
+                Math.max(-hw + 40, Math.min(hw - 40, p.x)),
+                Math.max(-hh + 40, Math.min(hh - 40, p.y)),
                 0,
             );
             if (clamped.x !== p.x || clamped.y !== p.y) this.playerNode.setPosition(clamped);

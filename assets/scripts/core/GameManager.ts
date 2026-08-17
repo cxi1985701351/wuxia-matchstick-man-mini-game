@@ -144,6 +144,14 @@ export class GameManager extends Component {
         return true;
     }
 
+    /** 置位剧情/任务 flag（幂等；置位后存档并广播，P5 任务日志监听刷新） */
+    setFlag(flag: string): void {
+        if (this.state.flags[flag]) return;
+        this.state.flags[flag] = true;
+        this.save();
+        EventBus.emit(Events.PLAYER_STATE_CHANGED, this.state, this.stats);
+    }
+
     /** 切磋胜利结算 */
     onBattleWin(xp: number, dropMartial?: string, dropWeapon?: string): void {
         this.state.kills += 1;

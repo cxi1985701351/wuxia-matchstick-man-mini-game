@@ -47,6 +47,12 @@ export class InkBackground extends Component {
         }
     }
 
+    /** 设置远景墨色浓度（区域切换时调用） */
+    setTone(t: number): void {
+        this.tone = t;
+        this.redraw();
+    }
+
     private redraw(): void {
         if (!this.gfx) return;
         const g = this.gfx;

@@ -472,10 +472,10 @@ export const NPCS: Record<string, NpcDef> = {
     },
 };
 
-/** 塔入口 NPC（功能节点） */
+/** 塔入口 NPC（功能节点；实际位置由 Regions.ts town 区域实例覆盖） */
 export const TOWER_GATE: NpcDef = {
     id: 'tower_gate', name: '问道塔', title: '试炼之地',
-    level: 1, pos: { x: 0, y: -320 },
+    level: 1, pos: { x: 880, y: 620 },
     dialog: ['问道塔，共二十层，层层凶险。', '攀登越高，奖励越丰厚。', '道友可敢一试？'],
     canFight: false, xp: 0,
     weapon: WeaponType.Sword, skillIds: [],

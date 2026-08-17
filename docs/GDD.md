@@ -474,3 +474,16 @@ CocosCreator.exe --project D:\shazi\MoJiang --build "platform=web-desktop"
 | 新特效 | InkEffects.spin（旋伞弧，伞）/ InkEffects.punch（拳风破空，拳）；spawnSkillFx 新分支 |
 | 验证（headless Edge + 实体状态直读） | 毒 2 跳时序：施放回合末首跳、次回合末次跳、到期消失（timer 2→1→0，每跳 atk×0.12）；毒致死路径：李青山 123 血 → 施放后 35 → 强制 2 血 → 防御 → 次回合末毒跳致死 → 胜利结算；CD 递减 [CD2]→[CD1]→就绪；拳属性：移速 280（+40）、闪避 5%、攻 12（攻低定位）；默认存档启动回归无异常 |
 
+### 13.13 开发记录（2026-08-17 第一章 P2 地图区域系统，已完成并验证）
+
+| 项 | 说明 |
+|---|---|
+| 方案 | 单 World 容器 + 区域重建（不切场景）：切换时重绘地面/重建 NPC/瞬移玩家/镜头 snap/边界换参 |
+| 数据结构 | RegionDef/TeleportDef/NpcInstance 接口 + `data/Regions.ts` 10 区域（村庄/中枢/主城/7 庭院） |
+| 地面 4 样式 | GroundPainter.draw(region)：village 田园 / hub 石板放射 / town 市集方砖 / sect 青石庭院（底色/笔触/边界通用） |
+| 装配 | WorldManager.enterRegion：同步清理（removeFromParent 不依赖帧末销毁）+ 实例化 NPC（含塔入口特殊节点）+ 传送点路标（墨线石碑+名称）+ 边界钳制（currentRegion.halfW/H）+ CameraFollow 边界与 snap + InkBackground.setTone 远景色调 |
+| 交互 | E 键优先级：NPC > 塔入口 > 传送点；传送点 Toast「前往X…」 |
+| 流程预留 | GameManager.setFlag（幂等+存档+广播）；flagOnEnter：hub→arrive_hub、town→arrive_town、sect_*→enter_sect |
+| 布局定案 | 问道塔入口在主城东北角边界 (880,620)；城门守卫移至路边避开传送点；旧 8 散人归位主城东西两侧 |
+| 验证（headless Edge 场景树直读） | 村庄出生 (0,0)；村庄→中枢 (0,800)/0 NPC/9 路标/arrive_hub；中枢→主城 (0,620)/19 NPC/arrive_town；塔面板打开；边界钳制局部 x=960；主城→中枢返回 (0,-800)；7 庭院全遍历（掌门在场+返回中枢）；切磋战斗回归正常；零 JS 异常 |
+

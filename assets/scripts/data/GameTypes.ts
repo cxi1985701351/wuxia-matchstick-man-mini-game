@@ -245,3 +245,49 @@ export interface SectDef {
     /** 庭院区域 id */
     regionId: string;
 }
+
+/** 区域传送点 */
+export interface TeleportDef {
+    id: string;
+    /** 本区域内节点位置（区域局部坐标） */
+    pos: { x: number; y: number };
+    /** 目标区域 id */
+    to: string;
+    /** 到达目标区域后的出生位置（目标区域局部坐标） */
+    spawn: { x: number; y: number };
+    /** 交互半径（默认 90，与 NPC 一致） */
+    radius?: number;
+    /** E 键提示文本（「下山道」「城门」「谪仙剑宗山门」等） */
+    label: string;
+}
+
+/** NPC 实例化（区域内的摆放，覆盖 NpcDef.pos） */
+export interface NpcInstance {
+    /** Npcs.ts 中的定义 id */
+    npcId: string;
+    /** 本区域内位置 */
+    pos: { x: number; y: number };
+    /** 朝向（默认 -1 朝左） */
+    facing?: number;
+}
+
+/** 区域定义（第一章区域制） */
+export interface RegionDef {
+    id: string;
+    name: string;
+    /** 区域半宽/半高（玩家边界钳制 + 镜头钳制） */
+    halfW: number;
+    halfH: number;
+    /** 地面样式键 */
+    ground: 'village' | 'hub' | 'town' | 'sect';
+    /** 本区域 NPC 实例（含旧散人与塔入口） */
+    npcs: NpcInstance[];
+    /** 本区域传送点 */
+    teleports: TeleportDef[];
+    /** 玩家进入本区域的出生点（区域局部坐标） */
+    spawn?: { x: number; y: number };
+    /** 远景层墨色浓度（0-1，InkBackground.tone） */
+    bgTone?: number;
+    /** 进入本区域时置位的任务 flag（P5 任务日志用） */
+    flagOnEnter?: string;
+}
