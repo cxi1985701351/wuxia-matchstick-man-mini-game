@@ -487,3 +487,15 @@ CocosCreator.exe --project D:\shazi\MoJiang --build "platform=web-desktop"
 | 布局定案 | 问道塔入口在主城东北角边界 (880,620)；城门守卫移至路边避开传送点；旧 8 散人归位主城东西两侧 |
 | 验证（headless Edge 场景树直读） | 村庄出生 (0,0)；村庄→中枢 (0,800)/0 NPC/9 路标/arrive_hub；中枢→主城 (0,620)/19 NPC/arrive_town；塔面板打开；边界钳制局部 x=960；主城→中枢返回 (0,-800)；7 庭院全遍历（掌门在场+返回中枢）；切磋战斗回归正常；零 JS 异常 |
 
+### 13.14 开发记录（2026-08-17 第一章 P3 NPC 与拜师流程，已完成并验证）
+
+| 项 | 说明 |
+|---|---|
+| 拜师礼数据 | SectDef + giftMartial（7 派 CD1 武学：落英剑法/断水流/清心曲/追风箭/盘龙枪法/伞影三叠/太极缠丝） |
+| 对话选项扩展 | NpcDialog 按角色生成：招募者「◎ 拜师：前往山门」（主城站位，庭院首席分身不显示）；掌门「◎ 拜师考核（与首席弟子切磋）」（未入门派时）；NpcActor.courtyard 区分双地点 |
+| 考核战 | WorldManager.startTrialBattle：首席弟子考核模板（仅基础武学 + 等级 ×0.75，保证流程可达）；苏婉清考核 defendOnly 只守不攻（琴音试心性） |
+| 拜师授艺 | GameManager.joinSect：授门派武器（自动装备）→ 清空不匹配槽 → 授基础武学 + CD1 拜师礼（自动装备）→ 门派称号 → trial_win/sect_joined flag → Toast |
+| 教学战 | BattleArena 沈觅人首战：教学文案（普攻/冷却/防御）持续展示至第一回合结束；达成 spar_shen flag |
+| 验证（headless Edge 全链路） | 教学战（提示 + spar_shen）；招募者「前往山门」→ 庭院；掌门考核 → 战斗结束 → **sectId=jianzong、称号=谪仙弟子、trial_win/sect_joined、落英剑法拥有并装备**；已入门派后本派/他派掌门均无考核选项（寒暄）；苏婉清考核 4 回合玩家未掉血（只守不攻）；零 JS 异常 |
+| 环境排障 | headless Edge 新版本会拦截到 `edge://sync-confirmation` 页导致所有测试挂起——测试脚本统一加 `--disable-sync` 启动旗标解决 |
+

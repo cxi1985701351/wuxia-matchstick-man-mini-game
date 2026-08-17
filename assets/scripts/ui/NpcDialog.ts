@@ -1,6 +1,7 @@
 import { _decorator, Component, Node, Label, Color, UITransform } from 'cc';
 import { NpcDef } from '../data/GameTypes.ts';
 import { EventBus, Events } from '../core/EventBus.ts';
+import { GameManager } from '../core/GameManager.ts';
 import { MARTIAL_ARTS } from '../data/MartialArts.ts';
 import { getWeaponById } from '../data/Weapons.ts';
 import { makeInkPanel, makeInkLabel, makeInkButton } from './UiKit.ts';
@@ -61,7 +62,7 @@ export class NpcDialog extends Component {
 
     private titleLabel: Label | null = null;
 
-    open(def: NpcDef, callback: (action: string) => void): void {
+    open(def: NpcDef, callback: (action: string) => void, ctx?: { courtyard?: boolean }): void {
         this.currentDef = def;
         this.callback = callback;
         this.dialogIndex = 0;
@@ -69,7 +70,7 @@ export class NpcDialog extends Component {
         if (this.root) this.root.active = true;
         this.titleLabel!.string = `${def.name} · ${def.title}`;
         this.showDialog();
-        this.buildOptions(def);
+        this.buildOptions(def, ctx);
     }
 
     close(): void {
@@ -86,11 +87,20 @@ export class NpcDialog extends Component {
         this.dialogIndex++;
     }
 
-    private buildOptions(def: NpcDef): void {
+    private buildOptions(def: NpcDef, ctx?: { courtyard?: boolean }): void {
         if (!this.optionRoot) return;
         this.optionRoot.removeAllChildren();
 
         const opts: { label: string; action: string }[] = [];
+        const joined = GameManager.inst.state.sectId;
+        // 第一章流程选项（按角色）
+        if (def.role === 'recruiter') {
+            // 主城招募者：可前往山门（庭院首席分身不显示）
+            if (!ctx?.courtyard) opts.push({ label: '◎ 拜师：前往山门', action: 'goto_sect' });
+        } else if (def.role === 'master' && !joined) {
+            // 掌门：未入门派时可请求拜师考核
+            opts.push({ label: '◎ 拜师考核（与首席弟子切磋）', action: 'trial' });
+        }
         if (def.canFight) opts.push({ label: '⚔ 切磋武艺', action: 'fight' });
         if (def.teachMartial) {
             const ma = MARTIAL_ARTS[def.teachMartial];

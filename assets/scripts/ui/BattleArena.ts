@@ -37,6 +37,8 @@ export class BattleArena extends Component {
     private promptLabel: Label | null = null;
     private commandRoot: Node | null = null;
     private skillButtons: Node[] = [];
+    /** 首战教学提示是否正在展示（避免被「先手」提示覆盖） */
+    private teachingShown: boolean = false;
 
     onLoad(): void {
         this.build();
@@ -145,11 +147,20 @@ export class BattleArena extends Component {
 
     // ===== 事件 =====
 
+    /** 首战教学文案（展示中；非 null 时优先于「请选择指令」等提示） */
+    private teachingText: string | null = null;
+
     private onBattleStart(player: BattleEntity, enemy: BattleEntity): void {
         this.show();
         if (this.playerNameLabel) this.playerNameLabel.string = player.data.name;
         if (this.enemyNameLabel) this.enemyNameLabel.string = enemy.data.name;
         this.refreshHp(player, enemy);
+        // 沈觅人教学战：首战引导（达成 q9「切磋之约」；教学文字在指令面板出现时展示）
+        const gm = GameManager.inst;
+        if (enemy.data.id === 'shenmiren' && !gm.state.flags['spar_shen']) {
+            this.teachingText = '【教学】普攻不耗内力；技能有冷却回合；防御可使本回合受伤减半';
+            gm.setFlag('spar_shen');
+        }
     }
 
     private onDamage(_attackerId: string, _targetId: string, _dmg: number, _dodge: boolean): void {
@@ -159,8 +170,11 @@ export class BattleArena extends Component {
 
     private onTurnStart(turn: number, playerFirst: boolean): void {
         if (this.turnLabel) this.turnLabel.string = `— 回 合 ${turn} —`;
-        const who = playerFirst ? '你' : '敌人';
-        if (this.promptLabel) this.promptLabel.string = `【回合 ${turn}】${who}先手`;
+        // 首战教学：不覆盖为先手提示
+        if (!this.teachingText) {
+            const who = playerFirst ? '你' : '敌人';
+            if (this.promptLabel) this.promptLabel.string = `【回合 ${turn}】${who}先手`;
+        }
         // 非玩家先手时不显示指令（等 ENEMY_TURN 后）
         if (playerFirst) this.showCommandPanel();
     }
@@ -170,6 +184,7 @@ export class BattleArena extends Component {
     }
 
     private onTurnEnd(turn: number): void {
+        this.teachingText = null; // 教学文字仅第一回合展示
         if (this.promptLabel) this.promptLabel.string = `回合 ${turn} 结束…`;
         this.clearCommands();
     }
@@ -190,7 +205,12 @@ export class BattleArena extends Component {
         // 回合制：无距离限制，普攻/技能默认可命中
 
         if (this.promptLabel) {
-            this.promptLabel.string = '⚔ 请选择指令';
+            // 首战教学：教学文案在玩家行动前持续展示
+            if (this.teachingText) {
+                this.promptLabel.string = this.teachingText;
+            } else {
+                this.promptLabel.string = '⚔ 请选择指令';
+            }
         }
 
         // 普攻（使用当前武器的基础武学，无距离/冷却限制）

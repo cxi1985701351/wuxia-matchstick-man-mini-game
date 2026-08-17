@@ -14,6 +14,8 @@ const { ccclass } = _decorator;
 @ccclass('NpcActor')
 export class NpcActor extends Component {
     npcDef: NpcDef | null = null;
+    /** 是否在门派庭院内（首席弟子双地点区分：主城招募者 vs 庭院首席） */
+    courtyard: boolean = false;
     private stickman: Stickman | null = null;
     private nameLabel: Label | null = null;
     private interactRadius = 90;

@@ -244,6 +244,8 @@ export interface SectDef {
     title: string;
     /** 庭院区域 id */
     regionId: string;
+    /** 拜师礼武学（CD1）id */
+    giftMartial: string;
 }
 
 /** 区域传送点 */

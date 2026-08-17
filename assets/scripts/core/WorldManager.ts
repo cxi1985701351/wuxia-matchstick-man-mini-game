@@ -10,8 +10,9 @@ import { InkBackground } from '../art/InkBackground.ts';
 import { GroundPainter } from '../art/GroundPainter.ts';
 import { EventBus, Events } from './EventBus.ts';
 import { NPCS, TOWER_GATE } from '../data/Npcs.ts';
-import { NpcDef, RegionDef } from '../data/GameTypes.ts';
+import { NpcDef, RegionDef, SectDef } from '../data/GameTypes.ts';
 import { getRegionById } from '../data/Regions.ts';
+import { getSectById } from '../data/Sects.ts';
 import { HudPanel } from '../ui/HudPanel.ts';
 import { NpcDialog } from '../ui/NpcDialog.ts';
 import { BattleOverPanel } from '../ui/BattleOverPanel.ts';
@@ -21,7 +22,7 @@ import { CodexPanel } from '../ui/CodexPanel.ts';
 import { TowerPanel } from '../ui/TowerPanel.ts';
 import { Toast } from '../ui/Toast.ts';
 import { getWeaponById } from '../data/Weapons.ts';
-import { MARTIAL_ARTS } from '../data/MartialArts.ts';
+import { MARTIAL_ARTS, getBasicWugong } from '../data/MartialArts.ts';
 import { getTowerFloor } from '../data/Tower.ts';
 import { WEAPON_NAMES } from '../combat/DamageFormula.ts';
 
@@ -230,7 +231,7 @@ export class WorldManager extends Component {
             }
             const def = NPCS[inst.npcId];
             if (!def) continue;
-            this.spawnNpc(def, inst.pos, inst.facing);
+            this.spawnNpc(def, inst.pos, inst.facing, region.id.startsWith('sect_'));
         }
     }
 
@@ -278,13 +279,14 @@ export class WorldManager extends Component {
         }
     }
 
-    private spawnNpc(def: NpcDef, pos?: { x: number; y: number }, facing?: number): NpcActor {
+    private spawnNpc(def: NpcDef, pos?: { x: number; y: number }, facing?: number, courtyard = false): NpcActor {
         const node = new Node(`Npc_${def.id}`);
         this.worldRoot!.addChild(node);
         const p = pos ?? def.pos;
         node.setPosition(p.x, p.y, 0);
         node.addComponent(UITransform);
         const actor = node.addComponent(NpcActor);
+        actor.courtyard = courtyard;
         actor.init(def);
         if (facing !== undefined) {
             const stick = node.getComponentInChildren(Stickman);
@@ -379,7 +381,59 @@ export class WorldManager extends Component {
                     // gainMartial 内部会发 Toast「习得武学：中文名」，这里只关面板
                 }
                 this.dialog?.close();
+            } else if (action === 'goto_sect') {
+                // 招募者：前往门派庭院
+                this.dialog?.close();
+                const sect = def.sectId ? getSectById(def.sectId) : undefined;
+                if (sect) {
+                    this.enterRegion(sect.regionId);
+                    EventBus.emit(Events.TOAST, `随${def.name}前往${sect.name}…`);
+                }
+            } else if (action === 'trial') {
+                // 掌门：拜师考核（与首席弟子切磋）
+                this.dialog?.close();
+                const sect = def.sectId ? getSectById(def.sectId) : undefined;
+                if (!sect) return;
+                const recruiter = NPCS[sect.recruiterId];
+                if (!recruiter) return;
+                this.startTrialBattle(sect, recruiter);
             }
+        }, { courtyard: actor.courtyard });
+    }
+
+    /** 拜师考核战：与门派首席弟子切磋（只考基本功：首席仅用基础武学、等级下调）；
+     *  苏婉清考核只守不攻（琴音试心性） */
+    private startTrialBattle(sect: SectDef, recruiter: NpcDef): void {
+        // 考核模板：基础武学 + 等级 ×0.75（保证流程可达，难度曲线 P6 调优）
+        const basic = getBasicWugong(recruiter.weapon);
+        const trialDef: NpcDef = {
+            ...recruiter,
+            level: Math.max(1, Math.round(recruiter.level * 0.75)),
+            skillIds: basic ? [basic.id] : [],
+        };
+        this.enterBattle((arena, cm) => {
+            const enemyNode = new Node(`TrialEnemy_${recruiter.id}`);
+            arena.arenaRoot!.addChild(enemyNode);
+            enemyNode.addComponent(UITransform);
+            const stick = enemyNode.addComponent(Stickman);
+            stick.weapon = recruiter.weapon;
+            stick.inkTone = recruiter.inkTone ?? 0.5;
+            stick.facing = -1;
+            const ai = enemyNode.addComponent(EnemyAI);
+            ai.defendOnly = recruiter.id === 'suwanqing';
+            cm.enemyNode = enemyNode;
+            cm.setup(this.playerNode!, enemyNode, arena.fxRoot!, arena.floatRoot!);
+            cm.startNpcBattle(trialDef, (r: BattleResult) => {
+                ai.unbind();
+                this.exitBattle(r, enemyNode);
+                if (r.win) {
+                    const ok = GameManager.inst.joinSect(sect.id);
+                    if (ok) EventBus.emit(Events.TOAST, `通过考核，拜入${sect.name}！`);
+                } else {
+                    EventBus.emit(Events.TOAST, '考核失败，可稍后再来挑战');
+                }
+            });
+            ai.bind();
         });
     }
 

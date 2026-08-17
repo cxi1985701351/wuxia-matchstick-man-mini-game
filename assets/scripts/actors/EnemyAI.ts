@@ -14,6 +14,8 @@ const { ccclass } = _decorator;
  */
 @ccclass('EnemyAI')
 export class EnemyAI extends Component {
+    /** 只守不攻（考核用：苏婉清琴音试心性） */
+    defendOnly: boolean = false;
     private stickman: Stickman | null = null;
     private bound: boolean = false;
 
@@ -44,6 +46,12 @@ export class EnemyAI extends Component {
     decide(cm: CombatManager, me: BattleEntity): void {
         if (!this.bound || !cm.inBattle || !me.alive) return;
         // 回合制：无距离限制
+
+        // 只守不攻（苏婉清考核：以琴音试心性，不主动出手）
+        if (this.defendOnly) {
+            cm.enemyAct({ type: 'defend' });
+            return;
+        }
 
         // 眩晕时不行动（提交防御占位）
         if (!me.canAct) {

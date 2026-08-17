@@ -1,7 +1,8 @@
 import { _decorator, Component } from 'cc';
 import { PlayerState } from '../data/GameTypes.ts';
-import { MARTIAL_ARTS } from '../data/MartialArts.ts';
+import { MARTIAL_ARTS, getBasicWugong } from '../data/MartialArts.ts';
 import { getWeaponById } from '../data/Weapons.ts';
+import { getSectById } from '../data/Sects.ts';
 import { StatCalculator } from '../combat/StatCalculator.ts';
 import { FighterStats } from '../data/GameTypes.ts';
 import { SaveSystem } from './SaveSystem.ts';
@@ -150,6 +151,40 @@ export class GameManager extends Component {
         this.state.flags[flag] = true;
         this.save();
         EventBus.emit(Events.PLAYER_STATE_CHANGED, this.state, this.stats);
+    }
+
+    /** 拜师入门：授予门派武器/基础武学/拜师礼（CD1），记录门派与称号（第一章仅一次） */
+    joinSect(sectId: string): boolean {
+        const sect = getSectById(sectId);
+        if (!sect || this.state.sectId) return false;
+        const s = this.state;
+        s.sectId = sectId;
+        s.sectTitle = sect.title;
+        // 1. 授予并自动装备门派武器
+        if (!s.ownedWeapons.includes(sect.weapon)) s.ownedWeapons.push(sect.weapon);
+        s.weaponId = sect.weapon;
+        // 2. 换武器后清空不匹配的武功槽
+        s.equipped.wugong = s.equipped.wugong.map((mid) => {
+            if (!mid) return undefined;
+            const ma = MARTIAL_ARTS[mid];
+            return ma && ma.weapon === sect.weapon ? mid : undefined;
+        });
+        // 3. 授予基础武学 + 拜师礼（CD1），装备拜师礼到空槽
+        const basic = getBasicWugong(sect.weapon);
+        if (basic && !s.ownedMartials.includes(basic.id)) s.ownedMartials.push(basic.id);
+        const gift = MARTIAL_ARTS[sect.giftMartial];
+        if (gift && !s.ownedMartials.includes(gift.id)) s.ownedMartials.push(gift.id);
+        if (gift) {
+            const slot = s.equipped.wugong.findIndex((x) => x === undefined);
+            if (slot >= 0) s.equipped.wugong[slot] = gift.id;
+        }
+        this.recomputeStats();
+        this.save();
+        this.setFlag('trial_win');
+        this.setFlag('sect_joined');
+        EventBus.emit(Events.TOAST, `拜入${sect.name}，获授「${gift?.name ?? '基础武学'}」与称号「${sect.title}」`);
+        EventBus.emit(Events.WEAPON_CHANGED, sect.weapon);
+        return true;
     }
 
     /** 切磋胜利结算 */
