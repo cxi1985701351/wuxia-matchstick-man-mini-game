@@ -71,4 +71,6 @@ export const Events = {
     TOWER_CHALLENGE: 'tower-challenge',
     FLOAT_TEXT: 'float-text',
     TOAST: 'toast',
+    /** 主菜单选档完成（GameRoot 收到后构建世界） */
+    MENU_START: 'menu-start',
 };

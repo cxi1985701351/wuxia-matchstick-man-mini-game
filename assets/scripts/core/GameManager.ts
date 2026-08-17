@@ -226,6 +226,12 @@ export class GameManager extends Component {
         return '大乘期';
     }
 
+    /** 主菜单选档后重载当前存档位状态并重算属性（切换存档位） */
+    reloadFromSlot(): void {
+        this.state = SaveSystem.load();
+        this.recomputeStats();
+    }
+
     save(): void {
         SaveSystem.save(this.state);
     }

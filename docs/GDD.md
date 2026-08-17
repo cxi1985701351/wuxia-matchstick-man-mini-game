@@ -545,3 +545,13 @@ CocosCreator.exe --project D:\shazi\MoJiang --build "platform=web-desktop"
 | 存档迁移 | SaveSystem.load 显式合并 flags/questItems（旧档缺字段取默认值）；legacy 存档（无 flags/questItems 字段）加载无异常验证 ✓ |
 | 验证 | `tools/p5_test.mjs` 新档全流程 26 项 ✓（gating/教学/三闻/拜师钩子/迁移，零 JS 异常）；P3 拜师回归 ✓（含 letter_opened 断言）；P4 重叠检测 0 重叠 ✓ |
 
+### 13.19 开发记录（2026-08-17 主菜单存档选择：3 存档位 新建/继续/两步删除）
+
+| 项 | 说明 |
+|---|---|
+| 多存档位 | `SaveSystem` 重构为 3 个独立存档位（`mojiang_save_slot_1/2/3` + `mojiang_current_slot` + `mojiang_slot_meta` 时间戳）；旧单档键 `mojiang_save_v1` 首次启动自动迁移到 slot_1 并选中，老档不崩 |
+| 主菜单 | 新增 `ui/MainMenu.ts` 全屏选档界面（GameRoot 选档后才构建世界）：标题「墨 江 湖」+ 3 张存档卡片（境界 Lv/门派/当前任务/存档时间，当前位金边高亮）——空位「新建游戏」、占用「继续江湖」+「删」（**两步确认**：删→确认？） |
+| 状态重载 | 选档后 `GameManager.reloadFromSlot()` 重载该位状态并重算属性；`EventBus.MENU_START` 通知 GameRoot 构建世界 |
+| 直进模式 | URL 带 `?autostart=1` 跳过主菜单直接进入（开发/自动化测试用，保留旧行为） |
+| 验证 | `tools/menu_test.mjs` 24 项 ✓（菜单显示/存档二新建/信息显示/继续保进度/切换隔离/两步删除/autostart 直进）；p5/sect/p4c/battle/region/p4 全量回归 ✓（测试注入改 slot 键 + autostart） |
+
