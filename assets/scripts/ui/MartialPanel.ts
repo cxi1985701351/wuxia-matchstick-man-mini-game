@@ -53,25 +53,32 @@ export class MartialPanel extends Component {
         // 标题
         makeInkLabel(root, '武 学 与 武 器', { x: 0, y: 292, fontSize: 30, bold: true, color: '#F0E6CE', w: 600, h: 40 });
 
-        // 关闭按钮
+        // 关闭按钮（右上角，y295 顶 629：与武器按钮0 顶 616 留 13px，与标题 x 分离）
         makeInkButton(root, '×', {
-            x: 460, y: 292, w: 52, h: 52, fontSize: 30,
+            x: 460, y: 295, w: 52, h: 52, fontSize: 30,
             bgColor: '#7A3B3B', borderColor: '#C9B896', textColor: '#F5EAD0',
             onClick: () => this.close(),
         });
 
-        // ===== 左列：属性总览（x=-350）=====
+        // ===== 左列：属性总览（x=-350；下移避开面板标题）=====
         const stat = new Node('stats');
         root.addChild(stat);
-        stat.setPosition(-350, 60, 0);
+        stat.setPosition(-350, 30, 0);
         const sl = stat.addComponent(Label);
         sl.fontSize = 16;
         sl.lineHeight = 28;
         sl.color = new Color(230, 222, 200, 255);
         sl.horizontalAlign = Label.HorizontalAlign.LEFT;
         sl.verticalAlign = Label.VerticalAlign.TOP;
-        sl.overflow = Label.Overflow.NONE;
+        sl.overflow = Label.Overflow.SHRINK;
         stat.addComponent(UITransform).setContentSize(280, 440);
+        // Label 初始化可能覆盖 contentSize，延迟固定
+        const fixStat = (): void => {
+            if (!stat.isValid) return;
+            const ut = stat.getComponent(UITransform);
+            if (ut) ut.setContentSize(280, 440);
+        };
+        setTimeout(fixStat, 0);
         this.statLabel = sl;
 
         // ===== 中列：标签页 + 列表（x=30）=====
@@ -96,11 +103,10 @@ export class MartialPanel extends Component {
         root.addChild(this.listRoot);
         this.listRoot.setPosition(30, -20, 0);
 
-        // ===== 右列：武器栏（x=380，纵向）=====
+        // ===== 右列：武器栏（x=380，纵向；按钮文字即名称，无独立标题避免与关闭按钮冲突）=====
         const weaponCol = new Node('weapons');
         root.addChild(weaponCol);
         weaponCol.setPosition(380, 60, 0);
-        makeInkLabel(weaponCol, '武  器', { x: 0, y: 200, fontSize: 20, bold: true, color: '#F0E6CE', w: 200, h: 28 });
         this.weaponRoot = weaponCol;
         this.refreshWeapons();
     }
@@ -117,7 +123,7 @@ export class MartialPanel extends Component {
             const w = WEAPONS[wid];
             const isCurrent = gm.state.weaponId === wid;
             makeInkButton(root, `${w.name}·${WEAPON_NAMES[w.type]}`, {
-                x: 0, y: 150 - i * 66, w: 200, h: 52, fontSize: 17,
+                x: 0, y: 170 - i * 66, w: 200, h: 52, fontSize: 17,
                 bgColor: isCurrent ? '#7A5A2A' : '#4A3B2A',
                 borderColor: isCurrent ? '#E8C56A' : '#C9B896',
                 textColor: '#F5EAD0',
@@ -218,10 +224,10 @@ export class MartialPanel extends Component {
                 textColor: isOwned ? '#F0E6CE' : '#9A9484',
                 onClick: isOwned ? () => this.toggleEquip(item) : undefined,
             });
-            // 数值说明行（按钮下方 18px 处，用 SHRINK 防止溢出）
+            // 数值说明行（按钮下方，留 5px 空隙；SHRINK 防溢出）
             const descNode = new Node('desc');
             list.addChild(descNode);
-            descNode.setPosition(0, y - 30, 0);
+            descNode.setPosition(0, y - 36, 0);
             const dl = descNode.addComponent(Label);
             dl.string = sourceText;
             dl.fontSize = 12;
@@ -231,6 +237,12 @@ export class MartialPanel extends Component {
             dl.verticalAlign = Label.VerticalAlign.CENTER;
             dl.overflow = Label.Overflow.SHRINK;
             descNode.addComponent(UITransform).setContentSize(450, 18);
+            const fixDesc = (): void => {
+                if (!descNode.isValid) return;
+                const ut = descNode.getComponent(UITransform);
+                if (ut) ut.setContentSize(450, 18);
+            };
+            setTimeout(fixDesc, 0);
         });
 
         // 翻页导航
@@ -240,22 +252,22 @@ export class MartialPanel extends Component {
         });
     }
 
-    /** 通用翻页导航（上一页 / 页码 / 下一页） */
+    /** 通用翻页导航（上一页 / 页码 / 下一页；与面板底边留 ≥20px） */
     private drawPager(parent: Node, page: number, totalPages: number, onChange: (p: number) => void): void {
         const hasPrev = page > 0;
         const hasNext = page < totalPages - 1;
         makeInkButton(parent, '← 上一页', {
-            x: -80, y: -300, w: 120, h: 40, fontSize: 15,
+            x: -80, y: -290, w: 120, h: 40, fontSize: 15,
             bgColor: hasPrev ? '#4A3B2A' : '#2E2A22',
             borderColor: hasPrev ? '#C9B896' : '#5A5A5A',
             textColor: hasPrev ? '#F0E6CE' : '#6A6454',
             onClick: hasPrev ? () => onChange(page - 1) : undefined,
         });
         makeInkLabel(parent, `${page + 1} / ${totalPages}`, {
-            x: 50, y: -300, fontSize: 16, color: '#E8C56A', w: 80, h: 30,
+            x: 50, y: -290, fontSize: 16, color: '#E8C56A', w: 80, h: 30,
         });
         makeInkButton(parent, '下一页 →', {
-            x: 180, y: -300, w: 120, h: 40, fontSize: 15,
+            x: 180, y: -290, w: 120, h: 40, fontSize: 15,
             bgColor: hasNext ? '#4A3B2A' : '#2E2A22',
             borderColor: hasNext ? '#C9B896' : '#5A5A5A',
             textColor: hasNext ? '#F0E6CE' : '#6A6454',
@@ -263,60 +275,43 @@ export class MartialPanel extends Component {
         });
     }
 
-    /** 行囊页：残篇（分页）+ 物品 + 武器/战绩（分区防重叠） */
+    /** 行囊页：残篇/物品/武器/战绩 统一列表（6 条/页翻页，避免多区重叠） */
     private refreshBagList(list: Node, gm: any): void {
         makeInkLabel(list, '行 囊', { x: 0, y: 200, fontSize: 18, bold: true, color: '#F0E6CE', w: 440, h: 26 });
 
+        // 合成条目
         const fragKeys = Object.keys(gm.state.fragments).filter((k) => (gm.state.fragments[k] ?? 0) > 0);
-        // 残篇分页（每页 6 条）
-        const fragTotal = Math.max(1, Math.ceil(fragKeys.length / this.perPage));
-        this.bagPage = Math.min(this.bagPage, fragTotal - 1);
-        const fragPage = fragKeys.slice(this.bagPage * this.perPage, (this.bagPage + 1) * this.perPage);
-        const fragLines: string[] = [];
-        if (fragKeys.length === 0) {
-            fragLines.push('【残篇】暂无残页');
-        } else {
-            fragLines.push('【残篇】');
-            for (const k of fragPage) {
-                const ma = MARTIAL_ARTS[k];
-                fragLines.push(` ·${ma?.name ?? k} 残页 ${gm.state.fragments[k]}/3`);
-            }
+        const entries: { icon: string; text: string }[] = [];
+        for (const k of fragKeys) {
+            const ma = MARTIAL_ARTS[k];
+            entries.push({ icon: '残篇', text: `${ma?.name ?? k} 残页 ${gm.state.fragments[k]}/3` });
         }
-        // 物品（剧情道具）
-        const itemLines: string[] = ['【物品】'];
-        if (gm.state.questItems.length === 0) {
-            itemLines.push(' （暂无物品）');
-        } else {
-            for (const it of gm.state.questItems) itemLines.push(` ·${it}`);
+        for (const it of gm.state.questItems) {
+            entries.push({ icon: '物品', text: it });
         }
-        // 武器与战绩
-        const weaponLines: string[] = ['【武器】'];
         for (const wid of gm.state.ownedWeapons) {
             const w = WEAPONS[wid];
-            weaponLines.push(` ·${w.name}（${WEAPON_NAMES[w.type]}）${gm.state.weaponId === wid ? ' ★装备中' : ''}`);
+            entries.push({ icon: '武器', text: `${w.name}（${WEAPON_NAMES[w.type]}）${gm.state.weaponId === wid ? ' ★装备中' : ''}` });
         }
-        weaponLines.push(`【战绩】击杀 ${gm.state.kills} 人，问道塔 ${gm.state.maxTowerFloor}/20 层`);
+        entries.push({ icon: '战绩', text: `击杀 ${gm.state.kills} 人，问道塔 ${gm.state.maxTowerFloor}/20 层` });
+        if (entries.length === 0) {
+            entries.push({ icon: '行囊', text: '空空如也' });
+        }
 
-        // 残篇区（上方，6 行）
-        const fragLabel = makeInkLabel(list, fragLines.join('\n'), {
-            x: 0, y: 160, fontSize: 15, color: '#E8DCC0', w: 460, h: 145,
+        // 分页（每页 6 条）
+        const totalPages = Math.max(1, Math.ceil(entries.length / this.perPage));
+        this.bagPage = Math.min(this.bagPage, totalPages - 1);
+        const pageEntries = entries.slice(this.bagPage * this.perPage, (this.bagPage + 1) * this.perPage);
+
+        pageEntries.forEach((e, i) => {
+            const y = 145 - i * 40;
+            makeInkLabel(list, `${e.icon} ·${e.text}`, {
+                x: 0, y, fontSize: 15, color: e.icon === '物品' ? '#E8C56A' : '#D8CEB4', w: 460, h: 32,
+            });
         });
-        fragLabel.lineHeight = 24;
-        fragLabel.verticalAlign = Label.VerticalAlign.TOP;
-        // 物品区（中部）
-        const itemLabel = makeInkLabel(list, itemLines.join('\n'), {
-            x: 0, y: 20, fontSize: 15, color: '#E8C56A', w: 460, h: 55,
-        });
-        itemLabel.lineHeight = 24;
-        itemLabel.verticalAlign = Label.VerticalAlign.TOP;
-        // 武器/战绩区（下方）
-        const weaponLabel = makeInkLabel(list, weaponLines.join('\n'), {
-            x: 0, y: -95, fontSize: 15, color: '#D8CEB4', w: 460, h: 130,
-        });
-        weaponLabel.lineHeight = 24;
-        weaponLabel.verticalAlign = Label.VerticalAlign.TOP;
-        // 残篇翻页导航
-        this.drawPager(list, this.bagPage, fragTotal, (p) => {
+
+        // 翻页导航
+        this.drawPager(list, this.bagPage, totalPages, (p) => {
             this.bagPage = p;
             this.refresh();
         });

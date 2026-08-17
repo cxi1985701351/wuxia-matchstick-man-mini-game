@@ -41,7 +41,7 @@ export function makeInkButton(parent: Node, text: string, opts: InkButtonOptions
     g.roundRect(-w / 2, -h / 2, w, h, 10);
     g.fill();
 
-    // 文字（子节点，永远在背景上层）
+    // 文字（子节点，永远在背景上层；SHRINK 固定文本框尺寸）
     const labelNode = new Node('label');
     btn.addChild(labelNode);
     labelNode.setPosition(0, 0, 0);
@@ -53,10 +53,23 @@ export function makeInkButton(parent: Node, text: string, opts: InkButtonOptions
     l.isBold = opts.bold ?? false;
     l.horizontalAlign = Label.HorizontalAlign.CENTER;
     l.verticalAlign = Label.VerticalAlign.CENTER;
-    labelNode.addComponent(UITransform).setContentSize(w, h);
+    l.overflow = Label.Overflow.SHRINK;
+    const fixBtnSize = (): void => {
+        if (!labelNode.isValid) return;
+        const ut = labelNode.getComponent(UITransform);
+        if (ut) ut.setContentSize(w, h);
+    };
+    fixBtnSize();
+    setTimeout(fixBtnSize, 0);
 
     // 交互
-    btn.addComponent(UITransform).setContentSize(w, h);
+    const fixBtnTransform = (): void => {
+        if (!btn.isValid) return;
+        const ut = btn.getComponent(UITransform);
+        if (ut) ut.setContentSize(w, h);
+    };
+    fixBtnTransform();
+    setTimeout(fixBtnTransform, 0);
     if (opts.onClick) {
         const b = btn.addComponent(Button);
         b.transition = Button.Transition.SCALE;
@@ -66,11 +79,11 @@ export function makeInkButton(parent: Node, text: string, opts: InkButtonOptions
     return btn;
 }
 
-/** 创建文字标签（子节点结构，带可选描边） */
+/** 创建文字标签（子节点结构，带可选描边；默认 SHRINK 固定文本框尺寸，保证布局间距可控） */
 export function makeInkLabel(
     parent: Node,
     text: string,
-    opts: { x?: number; y?: number; fontSize?: number; color?: string; bold?: boolean; w?: number; h?: number } = {},
+    opts: { x?: number; y?: number; fontSize?: number; color?: string; bold?: boolean; w?: number; h?: number; overflow?: Label.Overflow } = {},
 ): Label {
     const node = new Node('label');
     parent.addChild(node);
@@ -83,7 +96,18 @@ export function makeInkLabel(
     l.isBold = opts.bold ?? false;
     l.horizontalAlign = Label.HorizontalAlign.CENTER;
     l.verticalAlign = Label.VerticalAlign.CENTER;
-    node.addComponent(UITransform).setContentSize(opts.w ?? 300, opts.h ?? 40);
+    // 固定文本框：SHRINK 防止文本撑大/溢出 UITransform（overflow NONE 时引擎接管 contentSize）
+    l.overflow = opts.overflow ?? Label.Overflow.SHRINK;
+    const w = opts.w ?? 300;
+    const h = opts.h ?? 40;
+    const fixSize = (): void => {
+        if (!node.isValid) return;
+        const ut = node.getComponent(UITransform);
+        if (ut) ut.setContentSize(w, h);
+    };
+    fixSize();
+    // Label 初始化（onLoad/string/overflow 变更）可能异步覆盖 contentSize，延迟一个宏任务重新固定
+    setTimeout(fixSize, 0);
     return l;
 }
 

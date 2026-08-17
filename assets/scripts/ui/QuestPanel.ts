@@ -89,11 +89,11 @@ export class QuestPanel extends Component {
             makeInkLabel(content, `▶ ${current.title}`, {
                 x: 0, y: 140, fontSize: 24, bold: true, color: '#E8C56A', w: 780, h: 32,
             });
-            makeInkLabel(content, current.desc, { x: 0, y: 108, fontSize: 15, color: '#B8B09A', w: 780, h: 24 });
+            makeInkLabel(content, current.desc, { x: 0, y: 104, fontSize: 15, color: '#B8B09A', w: 780, h: 24 });
             current.targets.forEach((t, i) => {
                 const ok = !!flags[t.flag];
                 makeInkLabel(content, `${ok ? '✓' : '○'} ${t.text}`, {
-                    x: 0, y: 74 - i * 32, fontSize: 18,
+                    x: 0, y: 70 - i * 34, fontSize: 18,
                     color: ok ? '#8E9A6E' : '#F0E6CE', w: 780, h: 26,
                 });
             });

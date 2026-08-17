@@ -236,6 +236,12 @@ export class CodexPanel extends Component {
             dl.verticalAlign = Label.VerticalAlign.CENTER;
             dl.overflow = Label.Overflow.SHRINK;
             descNode.addComponent(UITransform).setContentSize(600, 14);
+            const fixDesc = (): void => {
+                if (!descNode.isValid) return;
+                const ut = descNode.getComponent(UITransform);
+                if (ut) ut.setContentSize(600, 14);
+            };
+            setTimeout(fixDesc, 0);
         });
 
         // 底部导航区（y=-250）：返回 ｜ 上一页 页码 下一页

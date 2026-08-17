@@ -12,7 +12,8 @@ const { ccclass } = _decorator;
 /**
  * 墨江湖 - 宗门界面（V 键，独立面板）
  * 未拜师：七派总览（门派/掌门/武器）与入派引导；
- * 已拜师：门派·称号、掌门、庭院、本门武器与武学一览（✓/★装备中）。
+ * 已拜师：门派·称号、掌门、本门武器与武学一览（✓/★装备中）。
+ * 布局规范：所有文字块之间留足空隙（≥12px），TOP 对齐用「文本起点 - h/2」定位。
  */
 @ccclass('SectPanel')
 export class SectPanel extends Component {
@@ -66,15 +67,17 @@ export class SectPanel extends Component {
         const gm = GameManager.inst;
         const s = gm.state;
         const sect = s.sectId ? getSectById(s.sectId) : undefined;
+        // 布局规范：所有块 CENTER 对齐、块间空隙 ≥12px。
+        // 面板标题「宗 门」位于 y270（h40 → 250..290），内容标题不得超过 y250。
 
         if (!sect) {
             // ===== 未拜师：七派总览 =====
             makeInkLabel(content, '尚未拜师', { x: 0, y: 215, fontSize: 24, bold: true, color: '#E8C56A', w: 780, h: 32 });
-            makeInkLabel(content, '江湖七派正在主城招募弟子。前往主城，寻一位招募者，\n随他入山门见掌门，通过考核即可拜师入门。', {
-                x: 0, y: 168, fontSize: 15, color: '#B8B09A', w: 780, h: 56,
+            makeInkLabel(content, '江湖七派正在主城招募弟子。前往主城，寻一位招募者，随他入山门见掌门，通过考核即可拜师入门。', {
+                x: 0, y: 160, fontSize: 15, color: '#B8B09A', w: 780, h: 50,
             });
-            // 七派列表（门派 / 掌门 / 武器）
-            const lines: string[] = ['─ 七 派 ─'];
+            // 七派列表（7 行 × 24 = 168 高，CENTER）
+            const lines: string[] = [];
             for (const key of Object.keys(SECTS)) {
                 const sd = SECTS[key];
                 const master = NPCS[sd.masterId];
@@ -82,11 +85,10 @@ export class SectPanel extends Component {
                 lines.push(`  ${sd.name}　掌门：${master?.name ?? '?'}　武器：${weapon.name}`);
             }
             const listLabel = makeInkLabel(content, lines.join('\n'), {
-                x: 0, y: 90, fontSize: 16, color: '#D8CEB4', w: 780, h: 230,
+                x: 0, y: -30, fontSize: 16, color: '#D8CEB4', w: 780, h: 168,
             });
-            listLabel.lineHeight = 30;
-            listLabel.verticalAlign = Label.VerticalAlign.TOP;
-            makeInkLabel(content, '（按 Q 查看任务指引）', { x: 0, y: -230, fontSize: 13, color: '#6E6858', w: 780, h: 20 });
+            listLabel.lineHeight = 24;
+            makeInkLabel(content, '（按 Q 查看任务指引）', { x: 0, y: -235, fontSize: 13, color: '#6E6858', w: 780, h: 20 });
             return;
         }
 
@@ -96,27 +98,26 @@ export class SectPanel extends Component {
             x: 0, y: 215, fontSize: 26, bold: true, color: '#E8C56A', w: 780, h: 34,
         });
         const weapon = getWeaponById(sect.weapon);
-        makeInkLabel(content, `掌门：${master?.name ?? '?'}　　本门武器：${weapon.name}（${weapon.desc}）`, {
-            x: 0, y: 175, fontSize: 15, color: '#B8B09A', w: 780, h: 26,
+        makeInkLabel(content, `掌门：${master?.name ?? '?'}　　本门武器：${weapon.name}`, {
+            x: 0, y: 160, fontSize: 15, color: '#B8B09A', w: 780, h: 26,
         });
-        // 门派武学一览（基础普攻 + 各 CD 武学）
+        // 门派武学一览：仅名称 + 状态（避免长描述换行导致溢出）
         const lines: string[] = ['【门派武学】'];
         const basic = getBasicWugong(sect.weapon);
         if (basic) {
-            lines.push(` ·${basic.name}（普攻）${s.ownedMartials.includes(basic.id) ? ' ✓' : '（未习得）'}`);
+            lines.push(`  ${basic.name}（普攻）${s.ownedMartials.includes(basic.id) ? '✓' : '未习得'}`);
         }
         for (const ma of getWugongByWeapon(sect.weapon)) {
             const owned = s.ownedMartials.includes(ma.id);
             const equipped = s.equipped.wugong.includes(ma.id);
-            lines.push(` ·${ma.name}${owned ? (equipped ? ' ★装备中' : ' ✓') : '（未习得）'}　${ma.desc}`);
+            lines.push(`  ${ma.name}${owned ? (equipped ? ' ★装备中' : ' ✓') : '（未习得）'}`);
         }
         const artLabel = makeInkLabel(content, lines.join('\n'), {
-            x: 0, y: 120, fontSize: 15, color: '#D8CEB4', w: 780, h: 260,
+            x: 0, y: 80, fontSize: 16, color: '#D8CEB4', w: 780, h: 132,
         });
-        artLabel.lineHeight = 28;
-        artLabel.verticalAlign = Label.VerticalAlign.TOP;
+        artLabel.lineHeight = 22;
         makeInkLabel(content, '（其余门派武学可于问道塔与江湖中寻获）', {
-            x: 0, y: -230, fontSize: 13, color: '#6E6858', w: 780, h: 20,
+            x: 0, y: -235, fontSize: 13, color: '#6E6858', w: 780, h: 20,
         });
     }
 
