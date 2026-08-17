@@ -87,12 +87,43 @@ export class NpcDialog extends Component {
         this.dialogIndex++;
     }
 
+    /** 展示指定序号台词（说书人三闻等流程用，不推进 dialogIndex） */
+    showLine(index: number): void {
+        const def = this.currentDef;
+        if (!def || !this.textLabel) return;
+        this.textLabel.string = def.dialog[index % def.dialog.length];
+    }
+
     private buildOptions(def: NpcDef, ctx?: { courtyard?: boolean }): void {
         if (!this.optionRoot) return;
         this.optionRoot.removeAllChildren();
 
+        const gm = GameManager.inst;
+        const fl = gm.state.flags;
+        // 老档（已有门派/爬塔/击杀）视为"进阶玩家"，跳过序章流程引导
+        const advanced = !!gm.state.sectId || gm.state.maxTowerFloor > 0 || gm.state.kills > 0;
         const opts: { label: string; action: string }[] = [];
-        const joined = GameManager.inst.state.sectId;
+
+        // ===== 第一章流程选项（按角色/剧情进度）=====
+        if (def.id === 'shenmiren' && !advanced) {
+            // 序章·沈觅人：三艺 → 木桩 → 赠玉 → 下山（逐步引导）
+            if (!fl['learn_3']) opts.push({ label: '◎ 习武三艺', action: 'learn3' });
+            else if (!fl['stump_done']) opts.push({ label: '◎ 木桩试炼', action: 'stump_go' });
+            else if (!fl['get_pendant']) opts.push({ label: '◎ 临别赠玉', action: 'pendant_get' });
+            else opts.push({ label: '▸ 下山指引', action: 'leave_hint' });
+        } else if (def.id === 'muzhuang' && !fl['stump_done']) {
+            opts.push({ label: '◎ 出手一试', action: 'stump' });
+        } else if (def.id === 'shuoshuren') {
+            // 说书人三闻（问道塔异动/魔教踪迹/七派招募 → rumors_done）
+            if (!fl['rumor_a']) opts.push({ label: '◎ 问道塔异动', action: 'rumor_a' });
+            if (!fl['rumor_b']) opts.push({ label: '◎ 魔教踪迹', action: 'rumor_b' });
+            if (!fl['rumor_c']) opts.push({ label: '◎ 七派招募', action: 'rumor_c' });
+        } else if (def.role === 'master' && gm.state.sectId && def.sectId === gm.state.sectId && !fl['pendant_mark']) {
+            // 拜师后：掌门提及玉佩印记（终局钩子）
+            opts.push({ label: '◎ 玉佩印记', action: 'pendant' });
+        }
+
+        const joined = gm.state.sectId;
         // 第一章流程选项（按角色）
         if (def.role === 'recruiter') {
             // 主城招募者：可前往山门（庭院首席分身不显示）
@@ -142,8 +173,15 @@ export class NpcDialog extends Component {
             case 'leave':
                 this.close();
                 break;
+            case 'rumor_a':
+            case 'rumor_b':
+            case 'rumor_c':
+                // 说书人三闻：展示对应台词，可连续听（不关闭，不置空回调）
+                this.showLine(action === 'rumor_a' ? 0 : action === 'rumor_b' ? 1 : 2);
+                if (this.callback) this.callback(action);
+                break;
             default:
-                // fight / teach 交给回调处理（回调内部会 close）
+                // fight / teach / 流程动作交给回调处理（回调内部会 close）
                 if (this.callback) {
                     const cb = this.callback;
                     this.callback = null;

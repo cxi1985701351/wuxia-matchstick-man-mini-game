@@ -153,6 +153,16 @@ export class GameManager extends Component {
         EventBus.emit(Events.PLAYER_STATE_CHANGED, this.state, this.stats);
     }
 
+    /** 获得剧情物品（玉佩/无字信等；重复获得忽略并返回 false） */
+    addQuestItem(item: string): boolean {
+        if (this.state.questItems.includes(item)) return false;
+        this.state.questItems.push(item);
+        this.save();
+        EventBus.emit(Events.TOAST, `获得物品：${item}`);
+        EventBus.emit(Events.PLAYER_STATE_CHANGED, this.state, this.stats);
+        return true;
+    }
+
     /** 拜师入门：授予门派武器/基础武学/拜师礼（CD1），记录门派与称号（第一章仅一次） */
     joinSect(sectId: string): boolean {
         const sect = getSectById(sectId);

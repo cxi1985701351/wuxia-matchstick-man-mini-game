@@ -157,6 +157,14 @@ export class WorldManager extends Component {
         EventBus.on(Events.TOWER_CHALLENGE, this.onTowerChallenge, this);
 
         this.mode = WorldMode.Explore;
+
+        // P5 教学引导：新档开场提示（老档不提示）
+        const gm = GameManager.inst;
+        if (!gm.state.flags['shen_talk'] && !gm.state.sectId && gm.state.maxTowerFloor === 0 && gm.state.kills === 0) {
+            setTimeout(() => {
+                EventBus.emit(Events.TOAST, '你在一间小木屋中醒来……按 E 与院中的沈觅人交谈。');
+            }, 900);
+        }
     }
 
     onDestroy(): void {
@@ -311,10 +319,12 @@ export class WorldManager extends Component {
         if (e.keyCode === KeyCode.KEY_E) this.tryInteract();
         if (e.keyCode === KeyCode.KEY_B) {
             if (this.mode !== WorldMode.Explore) return;
+            if (this.blockedByFlow('learn_3', '尚未习得武艺，先与沈觅人交谈。')) return;
             this.martialPanel?.toggle();
         }
         if (e.keyCode === KeyCode.KEY_C) {
             if (this.mode !== WorldMode.Explore) return;
+            if (this.blockedByFlow('arrive_town', '江湖见闻尚浅，进城后再翻阅图鉴。')) return;
             this.codexPanel?.toggle();
         }
         if (e.keyCode === KeyCode.KEY_Q) {
@@ -323,6 +333,7 @@ export class WorldManager extends Component {
         }
         if (e.keyCode === KeyCode.KEY_V) {
             if (this.mode !== WorldMode.Explore) return;
+            if (this.blockedByFlow('arrive_town', '门派之事，进城后再打听。')) return;
             this.sectPanel?.toggle();
         }
         if (e.keyCode === KeyCode.ESCAPE) {
@@ -373,12 +384,25 @@ export class WorldManager extends Component {
                 return;
             }
         }
-        // 传送点（当前区域）
+        // 传送点（当前区域；P5 序章 gating：下山道需玉佩、城门需切磋）
         if (this.currentRegion) {
             for (const tp of this.currentRegion.teleports) {
                 const d = Vec3.distance(new Vec3(tp.pos.x, tp.pos.y, 0), this.playerNode.position);
                 if (d < (tp.radius ?? 90)) {
+                    const gm = GameManager.inst;
+                    const advanced = !!gm.state.sectId || gm.state.maxTowerFloor > 0 || gm.state.kills > 0;
+                    if (!advanced) {
+                        if (tp.id === 'village_to_hub' && !gm.state.flags['get_pendant']) {
+                            EventBus.emit(Events.TOAST, '沈先生似乎还有话要说……');
+                            return;
+                        }
+                        if (tp.id === 'hub_to_town' && !gm.state.flags['spar_shen']) {
+                            EventBus.emit(Events.TOAST, '山道口，沈觅人正等你切磋一场。');
+                            return;
+                        }
+                    }
                     this.enterRegion(tp.to, tp.spawn);
+                    if (tp.id === 'village_to_hub') gm.setFlag('leave_village');
                     EventBus.emit(Events.TOAST, `前往${tp.label}…`);
                     return;
                 }
@@ -387,10 +411,23 @@ export class WorldManager extends Component {
         if (nearest) nearest.interact();
     }
 
+    /** 新手流程面板门禁：老档（已有门派/爬塔/击杀）不拦截 */
+    private blockedByFlow(flag: string, hint: string): boolean {
+        const gm = GameManager.inst;
+        if (gm.state.flags[flag]) return false;
+        if (gm.state.sectId || gm.state.maxTowerFloor > 0 || gm.state.kills > 0) return false;
+        EventBus.emit(Events.TOAST, hint);
+        return true;
+    }
+
     // ============ 对话与战斗 ============
 
     private onDialogOpen(def: NpcDef, actor: NpcActor): void {
         this.currentNpc = actor;
+        const gm = GameManager.inst;
+        // P5 剧情 flag：与沈觅人交谈 / 与招募者交谈（任务日志）
+        if (def.id === 'shenmiren') gm.setFlag('shen_talk');
+        if (def.role === 'recruiter') gm.setFlag('met_recruiter');
         this.dialog?.open(def, (action: string) => {
             if (action === 'fight') this.startNpcDuel(def, actor);
             else if (action === 'teach') {
@@ -416,6 +453,45 @@ export class WorldManager extends Component {
                 const recruiter = NPCS[sect.recruiterId];
                 if (!recruiter) return;
                 this.startTrialBattle(sect, recruiter);
+            } else if (action === 'learn3') {
+                // 序章：沈觅人授三艺（吐纳诀/健步功/基础剑式）
+                for (const mid of ['tunajue', 'jianbugong', 'jichujianshi']) {
+                    if (!gm.state.ownedMartials.includes(mid)) gm.state.ownedMartials.push(mid);
+                }
+                gm.save();
+                gm.setFlag('learn_3');
+                EventBus.emit(Events.TOAST, '你习得吐纳诀、健步功与基础剑式！（B 键打开武学面板）');
+                this.dialog?.close();
+            } else if (action === 'stump_go') {
+                // 序章：指引去木桩
+                EventBus.emit(Events.TOAST, '村口西侧的木桩——去试试你的出手。');
+                this.dialog?.close();
+            } else if (action === 'stump') {
+                // 木桩试炼（普攻教学）
+                gm.setFlag('stump_done');
+                EventBus.emit(Events.TOAST, '你朝木桩连连出手——嘭！气息渐稳。（战斗中普攻不耗内力）');
+                this.dialog?.close();
+            } else if (action === 'pendant_get') {
+                // 临别赠玉
+                gm.addQuestItem('玉佩');
+                gm.setFlag('get_pendant');
+                EventBus.emit(Events.TOAST, '你收下玉佩——玉质温润，背面隐约有一枚印记。');
+                this.dialog?.close();
+            } else if (action === 'leave_hint') {
+                EventBus.emit(Events.TOAST, '顺着村南的下山道，下山去吧。');
+                this.dialog?.close();
+            } else if (action === 'pendant') {
+                // 终局钩子：掌门提及玉佩印记
+                gm.setFlag('pendant_mark');
+                this.dialog?.close();
+                EventBus.emit(Events.TOAST, '「这玉佩上的印记……」掌门凝视良久，「竟与我派卷宗所载一般无二。」');
+            } else if (action === 'rumor_a' || action === 'rumor_b' || action === 'rumor_c') {
+                // 说书人三闻（可连续听；三闻集齐 → rumors_done）
+                gm.setFlag(action);
+                if (gm.state.flags['rumor_a'] && gm.state.flags['rumor_b'] && gm.state.flags['rumor_c']) {
+                    gm.setFlag('rumors_done');
+                    EventBus.emit(Events.TOAST, '三桩江湖传闻，你都听进心里了。');
+                }
             }
         }, { courtyard: actor.courtyard });
     }
@@ -447,7 +523,13 @@ export class WorldManager extends Component {
                 this.exitBattle(r, enemyNode);
                 if (r.win) {
                     const ok = GameManager.inst.joinSect(sect.id);
-                    if (ok) EventBus.emit(Events.TOAST, `通过考核，拜入${sect.name}！`);
+                    if (ok) {
+                        EventBus.emit(Events.TOAST, `通过考核，拜入${sect.name}！`);
+                        // 终局钩子：沈觅人的无字信（q15）
+                        GameManager.inst.addQuestItem('无字信');
+                        GameManager.inst.setFlag('letter_opened');
+                        EventBus.emit(Events.TOAST, '你拆开沈觅人留下的无字信——纸上一字也无。');
+                    }
                 } else {
                     EventBus.emit(Events.TOAST, '考核失败，可稍后再来挑战');
                 }

@@ -54,7 +54,7 @@ export class SaveSystem {
             const raw = sys.localStorage.getItem(SAVE_KEY);
             if (!raw) return createDefaultState();
             const parsed = JSON.parse(raw) as PlayerState;
-            // 与默认状态合并，防止字段缺失
+            // 与默认状态合并，防止字段缺失（旧档迁移：flags/questItems 等新字段取默认值）
             const def = createDefaultState();
             return {
                 ...def,
@@ -65,7 +65,9 @@ export class SaveSystem {
                     // 规范化技能槽（基础武学移出、槽位补足3个）
                     wugong: normalizeWugong(parsed.equipped?.wugong),
                 },
-                fragments: { ...parsed.fragments },
+                fragments: { ...(parsed.fragments ?? {}) },
+                flags: { ...def.flags, ...(parsed.flags ?? {}) },
+                questItems: Array.isArray(parsed.questItems) ? [...parsed.questItems] : [],
             };
         } catch (e) {
             console.warn('[SaveSystem] load failed, use default:', e);

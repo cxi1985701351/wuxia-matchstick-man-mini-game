@@ -520,3 +520,28 @@ CocosCreator.exe --project D:\shazi\MoJiang --build "platform=web-desktop"
 | 背包翻页 | B 面板四界面（武功/内功/轻功/行囊）统一翻页系统（6 条/页）：`drawPager` 通用导航（上一页/页码/下一页，不可翻页时置灰）；行囊残篇同样分页（原「其余折叠」改为翻页），物品/武器/战绩区固定显示 |
 | 验证 | 背包仅 4 tab（无门派）✓；内功 7 条 2 页翻页往返 ✓；行囊 8 残篇 2 页（6+2）✓ + 物品区 ✓；V 键宗门面板未拜师/已拜师两态 ✓；P3 拜师全链路回归 ✓；零 JS 异常 |
 
+### 13.17 开发记录（2026-08-17 全 UI 间距重排：宗门/背包字体重叠修复）
+
+**背景**：用户反馈宗门界面仍有字体重叠，确立新规则——**所有 UI 布局必须留足空隙（相邻元素间隙 ≥12px），优先居中对齐，文本框尺寸固定（SHRINK）保证布局可验证**。
+
+| 项 | 说明 |
+|---|---|
+| 重叠检测器 | `tools/p4c_test.mjs`：遍历面板下所有 Label/Button 的世界矩形（worldPosition ± UITransform），排除父子包含关系，重叠 >4px 即报错；宗门面板与 B 面板四 tab 全量扫描 |
+| 宗门面板重排 | SectPanel 全量居中布局：未拜师（标题 y215 / 引导 y160 / 七派列表 y-30 h168 / 指引 y-235）与已拜师（标题 y215 / 掌门 y160 / 武学列表 y80 h132 / 指引 y-235）两态 0 重叠 |
+| 背包面板重排 | MartialPanel 右上区冲突根因：武器列标题与面板标题/× 按钮三向交错——**删除武器列标题**（按钮文字即名称），× 上移至 y295（与武器按钮 0 留 13px、与面板标题 x 分离），武器按钮起点 170-66i，属性总览节点下移 y30（与标题底 632 留 22px） |
+| 尺寸修复守卫 | UiKit/MartialPanel/CodexPanel 中 `setTimeout(0)` 延迟尺寸回调全部加 `node.isValid` 守卫：节点销毁后不再调用 getComponent，消除场景重载时的引擎异常（Cannot read properties of null (reading 'length')） |
+| 验证 | p4c_test 全部面板 0 重叠 ✓（武功/内功/轻功/行囊×2 页/宗门两态）；P3 拜师全链路回归 ✓；ISSUES (none) |
+
+### 13.18 开发记录（2026-08-17 第一章 P5 流程整合：序章 gating/教学/三钩子/终局钩子/存档迁移）
+
+| 项 | 说明 |
+|---|---|
+| 序章 gating | 区域解锁顺序：小村→中枢→主城。**下山道**（village_to_hub）需先收玉佩（get_pendant），**主城城门**（hub_to_town）需先与沈觅人切磋（spar_shen）；老档（有门派/爬塔/击杀）跳过全部门禁，旧档不崩 |
+| 面板门禁 | B 武学面板需先习三艺（learn_3）；C 图鉴/V 宗门面板需入主城（arrive_town）；Q 任务日志全程可用；未达条件时 Toast 提示拦截 |
+| 沈觅人教学（序章） | 小村：首谈置 shen_talk → 「习武三艺」（吐纳诀/健步功/基础剑式 + learn_3）→ 木桩试炼指引 → 村口木桩「出手一试」（普攻教学 + stump_done）→ 「临别赠玉」（行囊物品·玉佩 + get_pendant）→ 下山指引；**中枢新增沈觅人**（山道口等待）：「切磋武艺」教学战（BattleArena【教学】文案 + spar_shen，解锁战斗与城门） |
+| 开场提示 | 新档开场 0.9s 后 Toast「你在一间小木屋中醒来……按 E 与院中的沈觅人交谈」；village 区域 flagOnEnter=wake_up（q1 自动完成） |
+| 三钩子（说书人） | 主城说书人三闻选项（问道塔异动/魔教踪迹/七派招募）逐条展示对应台词（NpcDialog.showLine），三闻集齐置 rumors_done（q10） |
+| 终局钩子 | 拜师成功后自动获得行囊物品·无字信并置 letter_opened（q15「拆开无字信」）；本派掌门新增「玉佩印记」选项 → pendant_mark（q16），均只埋钩子不揭示 |
+| 存档迁移 | SaveSystem.load 显式合并 flags/questItems（旧档缺字段取默认值）；legacy 存档（无 flags/questItems 字段）加载无异常验证 ✓ |
+| 验证 | `tools/p5_test.mjs` 新档全流程 26 项 ✓（gating/教学/三闻/拜师钩子/迁移，零 JS 异常）；P3 拜师回归 ✓（含 letter_opened 断言）；P4 重叠检测 0 重叠 ✓ |
+

@@ -21,6 +21,7 @@ export const REGIONS: Record<string, RegionDef> = {
         ],
         spawn: { x: 0, y: 0 },
         bgTone: 0.35,
+        flagOnEnter: 'wake_up',
     },
 
     // ============ 江湖中枢（箱庭通路） ============
@@ -28,7 +29,10 @@ export const REGIONS: Record<string, RegionDef> = {
         id: 'hub', name: '江湖中枢',
         halfW: 1200, halfH: 900,
         ground: 'hub',
-        npcs: [],
+        npcs: [
+            // 沈觅人：下山后在山道口等玩家切磋（教学战解锁战斗 → 城门放行）
+            { npcId: 'shenmiren', pos: { x: 0, y: 720 }, facing: 1 },
+        ],
         teleports: [
             { id: 'hub_to_village', pos: { x: 0, y: 850 }, to: 'village', spawn: { x: 0, y: -380 }, label: '下山道' },
             { id: 'hub_to_town', pos: { x: 0, y: -850 }, to: 'town', spawn: { x: 0, y: 620 }, label: '主城城门' },
