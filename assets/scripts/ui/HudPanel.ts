@@ -1,11 +1,12 @@
 import { _decorator, Component, Node, Label, Color, UITransform, Graphics } from 'cc';
 import { GameManager } from '../core/GameManager.ts';
 import { EventBus, Events } from '../core/EventBus.ts';
+import { SaveSystem } from '../core/SaveSystem.ts';
 import { FighterStats } from '../data/GameTypes.ts';
 import { MARTIAL_ARTS } from '../data/MartialArts.ts';
 import { getWeaponById } from '../data/Weapons.ts';
 import { WEAPON_NAMES } from '../combat/DamageFormula.ts';
-import { makeInkLabel } from './UiKit.ts';
+import { makeInkLabel, makeInkButton } from './UiKit.ts';
 
 const { ccclass } = _decorator;
 
@@ -23,6 +24,7 @@ export class HudPanel extends Component {
     private realmLabel: Label | null = null;
     private weaponLabel: Label | null = null;
     private skillLabels: Label[] = [];
+    private saveInfoLabel: Label | null = null;
 
     onLoad(): void {
         EventBus.on(Events.PLAYER_STATE_CHANGED, this.refresh, this);
@@ -96,6 +98,21 @@ export class HudPanel extends Component {
             x: 430, y: 282, fontSize: 12, color: '#6A5C44', w: 340, h: 20,
         }).horizontalAlign = Label.HorizontalAlign.RIGHT;
 
+        // ===== 存档信息 + 手动存档按钮（右上，快捷键提示下方）=====
+        this.saveInfoLabel = makeInkLabel(root, '尚未存档', {
+            x: 430, y: 250, fontSize: 12, color: '#6A5C44', w: 340, h: 20,
+        });
+        this.saveInfoLabel.horizontalAlign = Label.HorizontalAlign.RIGHT;
+        makeInkButton(root, '存 档', {
+            x: 430, y: 206, w: 90, h: 40, fontSize: 16,
+            bgColor: '#4A3B2A', borderColor: '#C9B896', textColor: '#F5EAD0',
+            onClick: () => {
+                GameManager.inst.save();
+                EventBus.emit(Events.TOAST, `已保存到${SaveSystem.getCurrentSlotInfo().name}`);
+                this.updateSaveInfo();
+            },
+        });
+
         // ===== 左下：武学快捷栏 =====
         for (let i = 0; i < 3; i++) {
             const slot = new Node(`skill${i}`);
@@ -148,5 +165,19 @@ export class HudPanel extends Component {
             const l = this.skillLabels[i];
             if (l) l.string = mid ? `${i + 1}.${MARTIAL_ARTS[mid].name}` : `${i + 1}.空`;
         }
+        this.updateSaveInfo();
+    }
+
+    /** 刷新存档位信息（档位名 + 最近保存时间） */
+    private updateSaveInfo(): void {
+        if (!this.saveInfoLabel) return;
+        const info = SaveSystem.getCurrentSlotInfo();
+        if (!info.id || !info.updatedAt) {
+            this.saveInfoLabel.string = '尚未存档';
+            return;
+        }
+        const d = new Date(info.updatedAt);
+        const p = (n: number): string => String(n).padStart(2, '0');
+        this.saveInfoLabel.string = `${info.name} · 已存 ${p(d.getHours())}:${p(d.getMinutes())}`;
     }
 }

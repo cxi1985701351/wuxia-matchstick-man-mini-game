@@ -27,7 +27,7 @@ export class Toast extends Component {
         g.roundRect(-300, -32, 600, 64, 14);
         g.stroke();
         root.addComponent(UITransform).setContentSize(600, 64);
-        // 文字（子节点，亮金色加粗）
+        // 文字（子节点，亮金色加粗；SHRINK 固定文本框，长文案不截断）
         const labelNode = new Node('label');
         root.addChild(labelNode);
         labelNode.setPosition(0, 0, 0);
@@ -37,7 +37,14 @@ export class Toast extends Component {
         l.isBold = true;
         l.horizontalAlign = Label.HorizontalAlign.CENTER;
         l.verticalAlign = Label.VerticalAlign.CENTER;
+        l.overflow = Label.Overflow.SHRINK;
         labelNode.addComponent(UITransform).setContentSize(580, 60);
+        const fixToast = (): void => {
+            if (!labelNode.isValid) return;
+            const ut = labelNode.getComponent(UITransform);
+            if (ut) ut.setContentSize(580, 60);
+        };
+        setTimeout(fixToast, 0);
         this.label = l;
         root.setPosition(0, -240, 0);
         root.active = false;

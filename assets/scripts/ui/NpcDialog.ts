@@ -41,7 +41,7 @@ export class NpcDialog extends Component {
             x: 0, y: 175, fontSize: 28, bold: true, color: '#F0E6CE', w: 600, h: 36,
         });
 
-        // 正文
+        // 正文（SHRINK 固定文本框：overflow NONE 时引擎接管 contentSize，长文本会截断）
         const text = new Node('text');
         root.addChild(text);
         text.setPosition(0, 40, 0);
@@ -51,7 +51,14 @@ export class NpcDialog extends Component {
         tLabel.color = new Color(235, 228, 210, 255);
         tLabel.horizontalAlign = Label.HorizontalAlign.CENTER;
         tLabel.verticalAlign = Label.VerticalAlign.CENTER;
+        tLabel.overflow = Label.Overflow.SHRINK;
         text.addComponent(UITransform).setContentSize(600, 160);
+        const fixText = (): void => {
+            if (!text.isValid) return;
+            const ut = text.getComponent(UITransform);
+            if (ut) ut.setContentSize(600, 160);
+        };
+        setTimeout(fixText, 0);
         this.textLabel = tLabel;
 
         // 选项区

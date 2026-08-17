@@ -34,7 +34,7 @@ export class NpcActor extends Component {
         this.stickman.inkTone = def.inkTone ?? 0.5;
         this.stickman.facing = -1;
 
-        // 名称标签
+        // 名称标签（SHRINK 固定文本框）
         const nameNode = new Node('name');
         node.addChild(nameNode);
         nameNode.setPosition(0, 60, 0);
@@ -45,8 +45,15 @@ export class NpcActor extends Component {
         label.lineHeight = 20;
         label.color = new Color(60, 60, 60, 220);
         label.isBold = true;
+        label.overflow = Label.Overflow.SHRINK;
         this.nameLabel = label;
         label.node.addComponent(UITransform).setContentSize(200, 24);
+        const fixName = (): void => {
+            if (!label.node.isValid) return;
+            const ut = label.node.getComponent(UITransform);
+            if (ut) ut.setContentSize(200, 24);
+        };
+        setTimeout(fixName, 0);
 
         // 可切磋标记（红点）
         if (def.canFight) {

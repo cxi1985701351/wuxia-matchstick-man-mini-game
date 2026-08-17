@@ -158,6 +158,20 @@ export class SaveSystem {
         return v && SLOT_IDS.includes(v as SlotId) ? v : null;
     }
 
+    /** 存档位显示名 */
+    static getSlotName(id: string | null): string {
+        if (id === 'slot_1') return '存档 一';
+        if (id === 'slot_2') return '存档 二';
+        if (id === 'slot_3') return '存档 三';
+        return '未存档';
+    }
+
+    /** 当前存档位信息（含最近保存时间戳，0 = 从未保存） */
+    static getCurrentSlotInfo(): { id: string | null; name: string; updatedAt: number } {
+        const id = this.getCurrentSlotId();
+        return { id, name: this.getSlotName(id), updatedAt: id ? (readMeta()[id] ?? 0) : 0 };
+    }
+
     static readSlot(id: string): PlayerState | null {
         if (!SLOT_IDS.includes(id as SlotId)) return null;
         const raw = readRaw(slotKey(id));

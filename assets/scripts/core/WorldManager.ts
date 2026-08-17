@@ -291,7 +291,14 @@ export class WorldManager extends Component {
             l.color = new Color(70, 64, 50, 255);
             l.isBold = true;
             l.horizontalAlign = Label.HorizontalAlign.CENTER;
+            l.overflow = Label.Overflow.SHRINK;
             labelNode.addComponent(UITransform).setContentSize(240, 24);
+            const fixSign = (): void => {
+                if (!labelNode.isValid) return;
+                const ut = labelNode.getComponent(UITransform);
+                if (ut) ut.setContentSize(240, 24);
+            };
+            setTimeout(fixSign, 0);
             this.signNodes.push(node);
         }
     }

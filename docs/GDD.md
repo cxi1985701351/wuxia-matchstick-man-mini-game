@@ -555,3 +555,12 @@ CocosCreator.exe --project D:\shazi\MoJiang --build "platform=web-desktop"
 | 直进模式 | URL 带 `?autostart=1` 跳过主菜单直接进入（开发/自动化测试用，保留旧行为） |
 | 验证 | `tools/menu_test.mjs` 24 项 ✓（菜单显示/存档二新建/信息显示/继续保进度/切换隔离/两步删除/autostart 直进）；p5/sect/p4c/battle/region/p4 全量回归 ✓（测试注入改 slot 键 + autostart） |
 
+### 13.20 开发记录（2026-08-18 三问题修复：主菜单重叠根因 / 长对话文字残缺 / HUD 存档按钮）
+
+| 问题 | 根因与修复 |
+|---|---|
+| 1. 存档界面 UI 重叠（空档/有档均现） | **根因：构建模板画布 1280×960（4:3）与设计分辨率 1280×720（16:9）不匹配**——SHOW_ALL 按 0.75 缩放并垂直居中，窗口只显示画布上半部：整体缩小 25%、下移约 210px、底部（第三卡片下半/提示）被裁切，视觉上呈现错位重叠。修复：引擎模板 `templates/web-desktop/index.ejs` 与构建产物 `index.html` 的画布统一为 1280×720，去掉模板自带 header/footer；截图（1:1）验证标题/副标题/三卡片/底部提示全部按设计坐标渲染 |
+| 2. 长对话文字残缺显示不全（掌门玉佩相关） | **根因：NpcDialog 正文 Label 未设 overflow（默认 NONE）→ 引擎接管 contentSize（100×100），长文本换行截断**；Toast 文字同样存在。修复：NpcDialog 正文、Toast、路标、NPC 名牌均设 `Label.Overflow.SHRINK` + 延迟固定 UITransform（与 UiKit 同模式，带 isValid 守卫） |
+| 3. 玩家不知有无存档/何时存档 | HUD 右上新增：**存档信息**（「存档 二 · 已存 HH:MM」，随每次自动存档刷新，`SaveSystem.getCurrentSlotInfo`）+ **「存 档」按钮**（手动存档 → Toast「已保存到存档 二」并刷新时间）；主菜单已有 3 档位/时间显示 |
+| 验证 | menu_test 26 项 ✓（新增 HUD 档位显示/手动存档断言）；p5_test 新增「长台词完整显示」✓；p4c 重叠 0 ✓；sect/battle/region/p4 回归全绿；零 JS 异常 |
+
