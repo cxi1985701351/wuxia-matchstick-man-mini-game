@@ -1,12 +1,10 @@
 import { _decorator, Component, Node, Label, Color, UITransform } from 'cc';
 import { GameManager } from '../core/GameManager.ts';
-import { MARTIAL_ARTS, getWugongByWeapon, getBasicWugong } from '../data/MartialArts.ts';
+import { MARTIAL_ARTS } from '../data/MartialArts.ts';
 import { WEAPONS } from '../data/Weapons.ts';
 import { MartialType } from '../data/GameTypes.ts';
 import { EventBus, Events } from '../core/EventBus.ts';
 import { WEAPON_NAMES } from '../combat/DamageFormula.ts';
-import { NPCS } from '../data/Npcs.ts';
-import { getSectById } from '../data/Sects.ts';
 import { makeInkPanel, makeInkLabel, makeInkButton } from './UiKit.ts';
 import { formatMartialStats } from './MartialFormat.ts';
 
@@ -25,8 +23,14 @@ export class MartialPanel extends Component {
     private root: Node | null = null;
     private statLabel: Label | null = null;
     private listRoot: Node | null = null;
-    private currentTab: 'neigong' | 'qinggong' | 'wugong' | 'bag' | 'sect' = 'wugong';
+    private currentTab: 'neigong' | 'qinggong' | 'wugong' | 'bag' = 'wugong';
     private weaponRoot: Node | null = null;
+    /** 武学列表当前页（每 tab 共用，切换时重置） */
+    private listPage: number = 0;
+    /** 行囊残篇当前页 */
+    private bagPage: number = 0;
+    /** 每页条数 */
+    private readonly perPage = 6;
 
     onLoad(): void {
         this.build();
@@ -79,7 +83,6 @@ export class MartialPanel extends Component {
             { label: '内 功', key: 'neigong' as const },
             { label: '轻 功', key: 'qinggong' as const },
             { label: '行 囊', key: 'bag' as const },
-            { label: '门 派', key: 'sect' as const },
         ];
         tabDefs.forEach((tab, i) => {
             makeInkButton(tabs, tab.label, {
@@ -126,8 +129,10 @@ export class MartialPanel extends Component {
         });
     }
 
-    private switchTab(tab: 'neigong' | 'qinggong' | 'wugong' | 'bag' | 'sect'): void {
+    private switchTab(tab: 'neigong' | 'qinggong' | 'wugong' | 'bag'): void {
         this.currentTab = tab;
+        this.listPage = 0;
+        this.bagPage = 0;
         this.refresh();
     }
 
@@ -166,14 +171,9 @@ export class MartialPanel extends Component {
         const gm = GameManager.inst;
         const s = gm.state;
 
-        // 行囊标签页：残篇 + 物品 + 武器/战绩
+        // 行囊标签页：残篇（分页） + 物品 + 武器/战绩
         if (this.currentTab === 'bag') {
             this.refreshBagList(list, gm);
-            return;
-        }
-        // 门派标签页
-        if (this.currentTab === 'sect') {
-            this.refreshSectList(list, gm);
             return;
         }
 
@@ -195,8 +195,13 @@ export class MartialPanel extends Component {
         }
         items = items.sort((a, b) => Number(b.owned) - Number(a.owned) || Number(b.equipped) - Number(a.equipped));
 
-        // 每个条目占 72px，含名称按钮 + 数值说明行，最多显示 6 条
-        items.slice(0, 6).forEach((item, i) => {
+        // 分页（每页 6 条）
+        const totalPages = Math.max(1, Math.ceil(items.length / this.perPage));
+        this.listPage = Math.min(this.listPage, totalPages - 1);
+        const pageItems = items.slice(this.listPage * this.perPage, (this.listPage + 1) * this.perPage);
+
+        // 每个条目占 72px，含名称按钮 + 数值说明行
+        pageItems.forEach((item, i) => {
             const y = 160 - i * 72;
             const ma = MARTIAL_ARTS[item.id];
             const isEquipped = item.equipped;
@@ -228,32 +233,53 @@ export class MartialPanel extends Component {
             descNode.addComponent(UITransform).setContentSize(450, 18);
         });
 
-        if (items.length > 6) {
-            makeInkLabel(list, `… 共 ${items.length} 门，已显示 6 门`, {
-                x: 0, y: 160 - 6 * 72 - 20, fontSize: 13, color: '#8A8474', w: 400, h: 20,
-            });
-        }
+        // 翻页导航
+        this.drawPager(list, this.listPage, totalPages, (p) => {
+            this.listPage = p;
+            this.refresh();
+        });
     }
 
-    /** 行囊页：残篇 + 物品 + 武器/战绩（分区防重叠） */
+    /** 通用翻页导航（上一页 / 页码 / 下一页） */
+    private drawPager(parent: Node, page: number, totalPages: number, onChange: (p: number) => void): void {
+        const hasPrev = page > 0;
+        const hasNext = page < totalPages - 1;
+        makeInkButton(parent, '← 上一页', {
+            x: -80, y: -300, w: 120, h: 40, fontSize: 15,
+            bgColor: hasPrev ? '#4A3B2A' : '#2E2A22',
+            borderColor: hasPrev ? '#C9B896' : '#5A5A5A',
+            textColor: hasPrev ? '#F0E6CE' : '#6A6454',
+            onClick: hasPrev ? () => onChange(page - 1) : undefined,
+        });
+        makeInkLabel(parent, `${page + 1} / ${totalPages}`, {
+            x: 50, y: -300, fontSize: 16, color: '#E8C56A', w: 80, h: 30,
+        });
+        makeInkButton(parent, '下一页 →', {
+            x: 180, y: -300, w: 120, h: 40, fontSize: 15,
+            bgColor: hasNext ? '#4A3B2A' : '#2E2A22',
+            borderColor: hasNext ? '#C9B896' : '#5A5A5A',
+            textColor: hasNext ? '#F0E6CE' : '#6A6454',
+            onClick: hasNext ? () => onChange(page + 1) : undefined,
+        });
+    }
+
+    /** 行囊页：残篇（分页）+ 物品 + 武器/战绩（分区防重叠） */
     private refreshBagList(list: Node, gm: any): void {
         makeInkLabel(list, '行 囊', { x: 0, y: 200, fontSize: 18, bold: true, color: '#F0E6CE', w: 440, h: 26 });
 
         const fragKeys = Object.keys(gm.state.fragments).filter((k) => (gm.state.fragments[k] ?? 0) > 0);
-        // 残篇最多显示 4 行，其余折叠
-        const MAX_FRAG = 4;
+        // 残篇分页（每页 6 条）
+        const fragTotal = Math.max(1, Math.ceil(fragKeys.length / this.perPage));
+        this.bagPage = Math.min(this.bagPage, fragTotal - 1);
+        const fragPage = fragKeys.slice(this.bagPage * this.perPage, (this.bagPage + 1) * this.perPage);
         const fragLines: string[] = [];
         if (fragKeys.length === 0) {
             fragLines.push('【残篇】暂无残页');
         } else {
             fragLines.push('【残篇】');
-            const shown = fragKeys.slice(0, MAX_FRAG);
-            for (const k of shown) {
+            for (const k of fragPage) {
                 const ma = MARTIAL_ARTS[k];
                 fragLines.push(` ·${ma?.name ?? k} 残页 ${gm.state.fragments[k]}/3`);
-            }
-            if (fragKeys.length > MAX_FRAG) {
-                fragLines.push(` … 其余 ${fragKeys.length - MAX_FRAG} 份残页`);
             }
         }
         // 物品（剧情道具）
@@ -271,60 +297,29 @@ export class MartialPanel extends Component {
         }
         weaponLines.push(`【战绩】击杀 ${gm.state.kills} 人，问道塔 ${gm.state.maxTowerFloor}/20 层`);
 
-        // 残篇区（上方）
+        // 残篇区（上方，6 行）
         const fragLabel = makeInkLabel(list, fragLines.join('\n'), {
-            x: 0, y: 150, fontSize: 15, color: '#E8DCC0', w: 460, h: 100,
+            x: 0, y: 160, fontSize: 15, color: '#E8DCC0', w: 460, h: 145,
         });
         fragLabel.lineHeight = 24;
         fragLabel.verticalAlign = Label.VerticalAlign.TOP;
         // 物品区（中部）
         const itemLabel = makeInkLabel(list, itemLines.join('\n'), {
-            x: 0, y: 40, fontSize: 15, color: '#E8C56A', w: 460, h: 60,
+            x: 0, y: 20, fontSize: 15, color: '#E8C56A', w: 460, h: 55,
         });
         itemLabel.lineHeight = 24;
         itemLabel.verticalAlign = Label.VerticalAlign.TOP;
         // 武器/战绩区（下方）
         const weaponLabel = makeInkLabel(list, weaponLines.join('\n'), {
-            x: 0, y: -90, fontSize: 15, color: '#D8CEB4', w: 460, h: 130,
+            x: 0, y: -95, fontSize: 15, color: '#D8CEB4', w: 460, h: 130,
         });
         weaponLabel.lineHeight = 24;
         weaponLabel.verticalAlign = Label.VerticalAlign.TOP;
-    }
-
-    /** 门派页：拜师状态、掌门、门派武学一览 */
-    private refreshSectList(list: Node, gm: any): void {
-        makeInkLabel(list, '门 派', { x: 0, y: 200, fontSize: 18, bold: true, color: '#F0E6CE', w: 440, h: 26 });
-        const s = gm.state;
-        const sect = s.sectId ? getSectById(s.sectId) : undefined;
-        if (!sect) {
-            makeInkLabel(list, '尚未拜师', { x: 0, y: 152, fontSize: 22, bold: true, color: '#8E9A6E', w: 440, h: 30 });
-            makeInkLabel(list, '江湖七派正在主城招募弟子。\n前往主城，寻一位招募者，随他入山门见掌门，\n通过考核即可拜师入门。', {
-                x: 0, y: 96, fontSize: 15, color: '#B8B09A', w: 440, h: 70,
-            });
-            makeInkLabel(list, '七派：谪仙剑宗 / 霸刀门 / 流音阁 / 惊鸿山庄\n　　　烈魂枪门 / 血衣阁 / 两仪门', {
-                x: 0, y: 10, fontSize: 13, color: '#8A8474', w: 460, h: 40,
-            });
-            return;
-        }
-        const master = NPCS[sect.masterId];
-        makeInkLabel(list, `${sect.name} · ${s.sectTitle ?? ''}`, {
-            x: 0, y: 168, fontSize: 22, bold: true, color: '#E8C56A', w: 440, h: 30,
+        // 残篇翻页导航
+        this.drawPager(list, this.bagPage, fragTotal, (p) => {
+            this.bagPage = p;
+            this.refresh();
         });
-        makeInkLabel(list, `掌门：${master?.name ?? '?'}`, { x: 0, y: 136, fontSize: 15, color: '#B8B09A', w: 440, h: 24 });
-        // 门派武学一览（基础普攻 + 各 CD 武学）
-        const lines: string[] = ['【门派武学】'];
-        const basic = getBasicWugong(sect.weapon);
-        if (basic) lines.push(` ·${basic.name}（普攻）${s.ownedMartials.includes(basic.id) ? ' ✓' : '（未习得）'}`);
-        for (const ma of getWugongByWeapon(sect.weapon)) {
-            const owned = s.ownedMartials.includes(ma.id);
-            const equipped = s.equipped.wugong.includes(ma.id);
-            lines.push(` ·${ma.name}${owned ? (equipped ? ' ★装备中' : ' ✓') : '（未习得）'}`);
-        }
-        const artLabel = makeInkLabel(list, lines.join('\n'), {
-            x: 0, y: 70, fontSize: 14, color: '#D8CEB4', w: 460, h: 180,
-        });
-        artLabel.lineHeight = 24;
-        artLabel.verticalAlign = Label.VerticalAlign.TOP;
     }
 
         private toggleEquip(item: { id: string; equipped: boolean }): void {

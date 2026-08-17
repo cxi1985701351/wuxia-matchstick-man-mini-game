@@ -20,6 +20,7 @@ import { BattleArena } from '../ui/BattleArena.ts';
 import { MartialPanel } from '../ui/MartialPanel.ts';
 import { CodexPanel } from '../ui/CodexPanel.ts';
 import { QuestPanel } from '../ui/QuestPanel.ts';
+import { SectPanel } from '../ui/SectPanel.ts';
 import { TowerPanel } from '../ui/TowerPanel.ts';
 import { Toast } from '../ui/Toast.ts';
 import { getWeaponById } from '../data/Weapons.ts';
@@ -60,6 +61,7 @@ export class WorldManager extends Component {
     private martialPanel: MartialPanel | null = null;
     private codexPanel: CodexPanel | null = null;
     private questPanel: QuestPanel | null = null;
+    private sectPanel: SectPanel | null = null;
     private towerPanel: TowerPanel | null = null;
     private toast: Toast | null = null;
 
@@ -138,6 +140,7 @@ export class WorldManager extends Component {
         this.martialPanel = this.uiRoot.addComponent(MartialPanel);
         this.codexPanel = this.uiRoot.addComponent(CodexPanel);
         this.questPanel = this.uiRoot.addComponent(QuestPanel);
+        this.sectPanel = this.uiRoot.addComponent(SectPanel);
         this.towerPanel = this.uiRoot.addComponent(TowerPanel);
         this.toast = this.uiRoot.addComponent(Toast);
 
@@ -318,12 +321,17 @@ export class WorldManager extends Component {
             if (this.mode !== WorldMode.Explore) return;
             this.questPanel?.toggle();
         }
+        if (e.keyCode === KeyCode.KEY_V) {
+            if (this.mode !== WorldMode.Explore) return;
+            this.sectPanel?.toggle();
+        }
         if (e.keyCode === KeyCode.ESCAPE) {
             if (this.dialog?.isOpen) this.dialog.close();
             else if (this.battleOver?.isOpen) this.battleOver.close();
             else if (this.codexPanel?.isOpen) this.codexPanel.close();
             else if (this.martialPanel?.isOpen) this.martialPanel.close();
             else if (this.questPanel?.isOpen) this.questPanel.close();
+            else if (this.sectPanel?.isOpen) this.sectPanel.close();
             else if (this.towerPanel?.isOpen) this.towerPanel.close();
             else if (CombatManager.inst.inBattle) {
                 this.toast?.show('战斗中不可退出，认输请按 Y');
