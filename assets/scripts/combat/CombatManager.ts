@@ -86,8 +86,8 @@ export class CombatManager extends Component {
         this.enemyNode = enemyNode;
         this.fxRoot = fxRoot;
         this.floatRoot = floatRoot;
-        this.playerStick = playerNode.getComponent(Stickman);
-        this.enemyStick = enemyNode ? enemyNode.getComponent(Stickman) : null;
+        this.playerStick = playerNode.getComponentInChildren(Stickman);
+        this.enemyStick = enemyNode ? enemyNode.getComponentInChildren(Stickman) : null;
     }
 
     // ============ 创建战斗实体 ============

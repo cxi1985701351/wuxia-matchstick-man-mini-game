@@ -499,3 +499,16 @@ CocosCreator.exe --project D:\shazi\MoJiang --build "platform=web-desktop"
 | 验证（headless Edge 全链路） | 教学战（提示 + spar_shen）；招募者「前往山门」→ 庭院；掌门考核 → 战斗结束 → **sectId=jianzong、称号=谪仙弟子、trial_win/sect_joined、落英剑法拥有并装备**；已入门派后本派/他派掌门均无考核选项（寒暄）；苏婉清考核 4 回合玩家未掉血（只守不攻）；零 JS 异常 |
 | 环境排障 | headless Edge 新版本会拦截到 `edge://sync-confirmation` 页导致所有测试挂起——测试脚本统一加 `--disable-sync` 启动旗标解决 |
 
+### 13.15 开发记录（2026-08-17 第一章 P4 UI 与美术 + 火柴人/武器建模 v2，已完成并验证）
+
+| 项 | 说明 |
+|---|---|
+| 任务日志 | QuestPanel（Q 键）：已完成 ✓ 摘要 / 当前任务 ▶ 高亮（目标逐条 ✓/○）/ 后续任务 ◇ 预览；Quests.ts 线性链 + flags 驱动，PLAYER_STATE_CHANGED 自动刷新 |
+| 门派页 | MartialPanel 新增「门 派」tab：未拜师（七派介绍引导）/ 已拜师（门派·称号 / 掌门 / 门派武学一览含 ★装备中）；行囊新增【物品】区（玉佩/无字信） |
+| HUD 提示 | 'Q 任务 ｜ C 图鉴 ｜ B 背包' |
+| 火柴人建模 v2 | 关节化骨骼（肩→肘→手 / 髋→膝→脚 两段式四肢 + 肘/膝墨点）、S 形笔锋躯干 + 肩线、墨点头颅（发髻+束冠）、姿态增强（Attack 弓步前压 / Cast 双掌前推） |
+| 武器建模 v2 | 剑（刃线+剑脊+剑格+剑柄+剑穗）、弓（上下双弧+弦+攻击搭箭）、琴（圆角琴身+五弦+岳山+琴轸）、刀（弯刃+刀背+刀镡+刀柄）、枪（长杆+菱形枪头+红缨）、伞（合伞斜持弯钩 / 开伞扇形+伞骨前刺）、拳（握拳圆+护腕） |
+| 玩家结构 | 玩家改为 body 子节点承载 Stickman（与 NPC 一致）；Stickman 查找统一 getComponentInChildren |
+| 验证 | Q 任务日志三区 ✓；门派页（未拜师/已拜师+掌门+武学★）✓；行囊物品（玉佩/无字信）✓；图鉴 8 筛选按钮回归 ✓；P3 拜师全链路回归 ✓；零 JS 异常 |
+| 渲染诊断 | headless SwiftShader 截图不显示世界层逐帧 Graphics（headless 伪影）；真实浏览器（真实 GPU）验证玩家与 NPC 火柴人正常渲染——截图存于 tools/p4/real_browser.png |
+

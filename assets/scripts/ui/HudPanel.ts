@@ -91,8 +91,8 @@ export class HudPanel extends Component {
         });
         this.weaponLabel.horizontalAlign = Label.HorizontalAlign.RIGHT;
 
-        // ===== 右上角下方：图鉴/背包快捷键提示 =====
-        makeInkLabel(root, 'C 图鉴 ｜ B 背包', {
+        // ===== 右上角下方：任务/图鉴/背包快捷键提示 =====
+        makeInkLabel(root, 'Q 任务 ｜ C 图鉴 ｜ B 背包', {
             x: 430, y: 282, fontSize: 13, color: '#6A5C44', w: 320, h: 20,
         }).horizontalAlign = Label.HorizontalAlign.RIGHT;
 

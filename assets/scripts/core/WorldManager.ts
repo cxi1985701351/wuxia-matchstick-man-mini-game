@@ -19,6 +19,7 @@ import { BattleOverPanel } from '../ui/BattleOverPanel.ts';
 import { BattleArena } from '../ui/BattleArena.ts';
 import { MartialPanel } from '../ui/MartialPanel.ts';
 import { CodexPanel } from '../ui/CodexPanel.ts';
+import { QuestPanel } from '../ui/QuestPanel.ts';
 import { TowerPanel } from '../ui/TowerPanel.ts';
 import { Toast } from '../ui/Toast.ts';
 import { getWeaponById } from '../data/Weapons.ts';
@@ -58,6 +59,7 @@ export class WorldManager extends Component {
     private battleArena: BattleArena | null = null;
     private martialPanel: MartialPanel | null = null;
     private codexPanel: CodexPanel | null = null;
+    private questPanel: QuestPanel | null = null;
     private towerPanel: TowerPanel | null = null;
     private toast: Toast | null = null;
 
@@ -135,6 +137,7 @@ export class WorldManager extends Component {
         this.battleArena = this.uiRoot.addComponent(BattleArena);
         this.martialPanel = this.uiRoot.addComponent(MartialPanel);
         this.codexPanel = this.uiRoot.addComponent(CodexPanel);
+        this.questPanel = this.uiRoot.addComponent(QuestPanel);
         this.towerPanel = this.uiRoot.addComponent(TowerPanel);
         this.toast = this.uiRoot.addComponent(Toast);
 
@@ -171,7 +174,10 @@ export class WorldManager extends Component {
         this.worldRoot!.addChild(node);
         node.setPosition(0, 0, 0);
         node.addComponent(UITransform);
-        const stick = node.addComponent(Stickman);
+        // 身体子节点（与 NPC 结构一致：Stickman/Graphics 挂在 body 上，规避同节点多渲染组件的渲染问题）
+        const body = new Node('body');
+        node.addChild(body);
+        const stick = body.addComponent(Stickman);
         stick.weapon = getWeaponById(GameManager.inst.state.weaponId).type;
         stick.inkTone = 0.4;
         this.playerController = node.addComponent(PlayerController);
@@ -308,11 +314,16 @@ export class WorldManager extends Component {
             if (this.mode !== WorldMode.Explore) return;
             this.codexPanel?.toggle();
         }
+        if (e.keyCode === KeyCode.KEY_Q) {
+            if (this.mode !== WorldMode.Explore) return;
+            this.questPanel?.toggle();
+        }
         if (e.keyCode === KeyCode.ESCAPE) {
             if (this.dialog?.isOpen) this.dialog.close();
             else if (this.battleOver?.isOpen) this.battleOver.close();
             else if (this.codexPanel?.isOpen) this.codexPanel.close();
             else if (this.martialPanel?.isOpen) this.martialPanel.close();
+            else if (this.questPanel?.isOpen) this.questPanel.close();
             else if (this.towerPanel?.isOpen) this.towerPanel.close();
             else if (CombatManager.inst.inBattle) {
                 this.toast?.show('战斗中不可退出，认输请按 Y');
@@ -522,8 +533,8 @@ export class WorldManager extends Component {
         const player = this.playerNode!;
         player.setParent(arena.arenaRoot!);
         player.setPosition(-160, 0, 0);
-        if (this.playerController && this.playerController.getComponent(Stickman)) {
-            this.playerController.getComponent(Stickman).facing = 1;
+        if (this.playerController && this.playerController.getComponentInChildren(Stickman)) {
+            this.playerController.getComponentInChildren(Stickman).facing = 1;
         }
 
         // 4. 让配置函数创建敌人并启动战斗
