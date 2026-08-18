@@ -264,13 +264,13 @@ export const MARTIAL_ARTS: Record<string, MartialArtDef> = {
     xueyupiaoling: {
         id: 'xueyupiaoling', name: '血雨飘零', type: MartialType.WuGong, weapon: WeaponType.Umbrella,
         desc: '伞开如血雨，中者血毒入体，绵绵不绝。',
-        skill: { id: 'xueyupiaoling', name: '血雨飘零', multiplier: 2.0, cooldown: 2, mpCost: 28, range: 160, hitCount: 2, poison: 0.12, fx: 'spin' },
+        skill: { id: 'xueyupiaoling', name: '血雨飘零', multiplier: 2.5, cooldown: 2, mpCost: 28, range: 160, hitCount: 2, poison: 0.12, fx: 'spin' },
         source: '问道塔 6 层奖励',
     },
     mihunshanyan: {
         id: 'mihunshanyan', name: '迷魂伞烟', type: MartialType.WuGong, weapon: WeaponType.Umbrella,
         desc: '伞旋烟迷，中者神魂颠倒，身中剧毒。',
-        skill: { id: 'mihunshanyan', name: '迷魂伞烟', multiplier: 1.9, cooldown: 3, mpCost: 45, range: 170, hitCount: 3, stun: 1, poison: 0.08, fx: 'spin' },
+        skill: { id: 'mihunshanyan', name: '迷魂伞烟', multiplier: 2.2, cooldown: 3, mpCost: 45, range: 170, hitCount: 3, stun: 1, poison: 0.08, fx: 'spin' },
         source: '问道塔 11 层奖励',
     },
 
