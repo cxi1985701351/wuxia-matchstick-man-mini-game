@@ -22,6 +22,7 @@ import { CodexPanel } from '../ui/CodexPanel.ts';
 import { QuestPanel } from '../ui/QuestPanel.ts';
 import { SectPanel } from '../ui/SectPanel.ts';
 import { TowerPanel } from '../ui/TowerPanel.ts';
+import { TouchControls } from '../ui/TouchControls.ts';
 import { Toast } from '../ui/Toast.ts';
 import { getWeaponById } from '../data/Weapons.ts';
 import { MARTIAL_ARTS, getBasicWugong } from '../data/MartialArts.ts';
@@ -45,7 +46,8 @@ export enum WorldMode {
 export class WorldManager extends Component {
     mode: WorldMode = WorldMode.Explore;
     playerNode: Node | null = null;
-    private playerController: PlayerController | null = null;
+    /** 玩家控制器（触屏层 TouchControls 需要写入摇杆方向） */
+    playerController: PlayerController | null = null;
     private npcActors: NpcActor[] = [];
     private fxRoot: Node | null = null;
     private floatRoot: Node | null = null;
@@ -143,6 +145,11 @@ export class WorldManager extends Component {
         this.sectPanel = this.uiRoot.addComponent(SectPanel);
         this.towerPanel = this.uiRoot.addComponent(TowerPanel);
         this.toast = this.uiRoot.addComponent(Toast);
+        // 触屏控制层（仅触屏设备；PC 键盘保留，二者并存）
+        if (TouchControls.isTouchEnabled()) {
+            const tc = this.uiRoot.addComponent(TouchControls);
+            tc.init(this);
+        }
 
         // 交互事件
         input.on(Input.EventType.KEY_DOWN, this.onKeyDown, this);
@@ -354,25 +361,10 @@ export class WorldManager extends Component {
 
     private onKeyDown(e: EventKeyboard): void {
         if (e.keyCode === KeyCode.KEY_E) this.tryInteract();
-        if (e.keyCode === KeyCode.KEY_B) {
-            if (this.mode !== WorldMode.Explore) return;
-            if (this.blockedByFlow('learn_3', '尚未习得武艺，先与沈觅人交谈。')) return;
-            this.martialPanel?.toggle();
-        }
-        if (e.keyCode === KeyCode.KEY_C) {
-            if (this.mode !== WorldMode.Explore) return;
-            if (this.blockedByFlow('arrive_town', '江湖见闻尚浅，进城后再翻阅图鉴。')) return;
-            this.codexPanel?.toggle();
-        }
-        if (e.keyCode === KeyCode.KEY_Q) {
-            if (this.mode !== WorldMode.Explore) return;
-            this.questPanel?.toggle();
-        }
-        if (e.keyCode === KeyCode.KEY_V) {
-            if (this.mode !== WorldMode.Explore) return;
-            if (this.blockedByFlow('arrive_town', '门派之事，进城后再打听。')) return;
-            this.sectPanel?.toggle();
-        }
+        if (e.keyCode === KeyCode.KEY_B) this.toggleBag();
+        if (e.keyCode === KeyCode.KEY_C) this.toggleCodex();
+        if (e.keyCode === KeyCode.KEY_Q) this.toggleQuest();
+        if (e.keyCode === KeyCode.KEY_V) this.toggleSect();
         if (e.keyCode === KeyCode.ESCAPE) {
             if (this.dialog?.isOpen) this.dialog.close();
             else if (this.battleOver?.isOpen) this.battleOver.close();
@@ -384,16 +376,46 @@ export class WorldManager extends Component {
             else if (CombatManager.inst.inBattle) {
                 this.toast?.show('战斗中不可退出，认输请按 Y');
             } else {
-                // 无面板打开 + 非战斗 → 保存并返回存档页面
-                GameManager.inst.save();
-                EventBus.emit(Events.TOAST, '已保存，返回存档页面');
-                EventBus.emit(Events.MENU_EXIT);
+                this.exitToMenu();
             }
         }
         // 认输
         if (e.keyCode === KeyCode.KEY_Y && CombatManager.inst.inBattle) {
             CombatManager.inst.surrender();
         }
+    }
+
+    // ============ 触屏/键盘共用操作（TouchControls 调用）============
+
+    toggleBag(): void {
+        if (this.mode !== WorldMode.Explore) return;
+        if (this.blockedByFlow('learn_3', '尚未习得武艺，先与沈觅人交谈。')) return;
+        this.martialPanel?.toggle();
+    }
+
+    toggleCodex(): void {
+        if (this.mode !== WorldMode.Explore) return;
+        if (this.blockedByFlow('arrive_town', '江湖见闻尚浅，进城后再翻阅图鉴。')) return;
+        this.codexPanel?.toggle();
+    }
+
+    toggleQuest(): void {
+        if (this.mode !== WorldMode.Explore) return;
+        this.questPanel?.toggle();
+    }
+
+    toggleSect(): void {
+        if (this.mode !== WorldMode.Explore) return;
+        if (this.blockedByFlow('arrive_town', '门派之事，进城后再打听。')) return;
+        this.sectPanel?.toggle();
+    }
+
+    /** 保存并退出到存档页面（ESC / 触屏退出按钮共用） */
+    exitToMenu(): void {
+        if (this.mode !== WorldMode.Explore) return;
+        GameManager.inst.save();
+        EventBus.emit(Events.TOAST, '已保存，返回存档页面');
+        EventBus.emit(Events.MENU_EXIT);
     }
 
     private onMouseDown(e: EventMouse): void {

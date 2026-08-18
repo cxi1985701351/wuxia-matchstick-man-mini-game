@@ -20,11 +20,19 @@ export class PlayerController extends Component {
     private keys: Record<string, boolean> = {};
     private stickman: Stickman | null = null;
     private moveDir: Vec2 = { x: 0, y: 0 };
+    /** 触屏虚拟摇杆方向（-1~1，由 TouchControls 写入） */
+    private touchMove: Vec2 = { x: 0, y: 0 };
     private attackTimer: number = 0;
     private dashTimer: number = 0;
     private dashDir: Vec2 = { x: 0, y: 0 };
     /** 是否在战斗模式（可攻击） */
     inBattle: boolean = false;
+
+    /** 触屏摇杆方向输入（TouchControls 调用；键盘输入保留并存） */
+    setTouchMove(x: number, y: number): void {
+        this.touchMove.x = x;
+        this.touchMove.y = y;
+    }
 
     onLoad(): void {
         this.stickman = this.getComponent(Stickman) || this.node.getComponentInChildren(Stickman);
@@ -93,12 +101,14 @@ export class PlayerController extends Component {
         // 战斗中：不移动（回合制站位固定）
         if (this.inBattle) return;
 
-        // 输入方向
-        let dx = 0, dy = 0;
-        if (this.keys[KeyCode.KEY_A] || this.keys[KeyCode.ARROW_LEFT]) dx -= 1;
-        if (this.keys[KeyCode.KEY_D] || this.keys[KeyCode.ARROW_RIGHT]) dx += 1;
-        if (this.keys[KeyCode.KEY_W] || this.keys[KeyCode.ARROW_UP]) dy += 1;
-        if (this.keys[KeyCode.KEY_S] || this.keys[KeyCode.ARROW_DOWN]) dy -= 1;
+        // 输入方向（键盘 + 触屏摇杆，触屏优先）
+        let dx = this.touchMove.x, dy = this.touchMove.y;
+        if (dx === 0 && dy === 0) {
+            if (this.keys[KeyCode.KEY_A] || this.keys[KeyCode.ARROW_LEFT]) dx -= 1;
+            if (this.keys[KeyCode.KEY_D] || this.keys[KeyCode.ARROW_RIGHT]) dx += 1;
+            if (this.keys[KeyCode.KEY_W] || this.keys[KeyCode.ARROW_UP]) dy += 1;
+            if (this.keys[KeyCode.KEY_S] || this.keys[KeyCode.ARROW_DOWN]) dy -= 1;
+        }
         this.moveDir = { x: dx, y: dy };
 
         const gm = GameManager.inst;

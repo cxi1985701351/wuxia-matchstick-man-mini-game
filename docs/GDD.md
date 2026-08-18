@@ -605,3 +605,14 @@ CocosCreator.exe --project D:\shazi\MoJiang --build "platform=web-desktop"
 | 验收 | p5_test 32 项 ✓；menu_test 30 项 ✓；sect/p4c/battle/region/p4 全量回归 ✓ |
 | P6 完成 | 伞/拳 CD 曲线递增 ✓；时长达标 ✓；全量测试通过 ✓ |
 
+### 13.25 开发记录（2026-08-18 触屏输入模块：微信小程序前置）
+
+| 项 | 说明 |
+|---|---|
+| TouchControls | 新增 `ui/TouchControls.ts`（挂 UI 层，`sys.hasTouch` 检测 + `?touch=1` 强制开启）：**虚拟摇杆**（左下，半径 70，拖拽驱动移动）+ 右侧纵列六按钮：交互（E 替代）/背包（B）/图鉴（C）/任务（Q）/宗门（V）/退出（ESC，保存并回存档页）；战斗时自动隐藏（BATTLE_START/END） |
+| 双输入架构 | **touch + mouse 双输入**：真机走 `input.on(TOUCH_*)`；PC/headless 引擎只注册 mouse 监听（`sys.hasTouch=false`），故摇杆同时支持鼠标拖拽（PC 附加能力）。`PlayerController.setTouchMove()` 与键盘 WASD 并存（触屏优先，键盘保留） |
+| WorldManager 重构 | B/C/Q/V 开关与 ESC 退出抽为公共方法（`toggleBag/toggleCodex/toggleQuest/toggleSect/exitToMenu`），键盘与触屏按钮共用同一路径 |
+| 坐标修正 | `getUILocation()` 返回 UI 坐标（原点设计分辨率左下角 1280×720），摇杆中心须换算（局部 (-400,-240) → UI (240,120)），初版用局部坐标导致拖拽不响应 |
+| GameRoot 修正 | MENU_START/MENU_EXIT 始终注册（autostart 模式 ESC 退出也可用）；退出后 GameManager 保留（选档时 reloadFromSlot 重载） |
+| 测试 | `tools/touch_test.mjs` 14 项 ✓：触屏层显示/摇杆右左移动/松手停止/交互开对话/四面板开关/战斗隐藏恢复/退出回菜单（合成 MouseEvent 派发，CDP Input.dispatchTouchEvent 在 headless 不可靠）；p5_test 修一处 ESC 误触退出（B 面板门禁后勿按 ESC）；全量回归绿 |
+

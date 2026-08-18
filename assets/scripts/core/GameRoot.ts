@@ -32,14 +32,15 @@ export class GameRoot extends Component {
         if (this.node.getComponent(GameManager)) return;
         this.node.addComponent(GameManager);
         this.node.addComponent(CombatManager);
+        // MENU_START/MENU_EXIT 始终注册（ESC/触屏退出在 autostart 模式下也可用）
+        EventBus.on(Events.MENU_START, this.onMenuStart, this);
+        EventBus.on(Events.MENU_EXIT, this.onMenuExit, this);
         // 主菜单选档后再构建世界；?autostart=1 直接进入
         if (typeof location !== 'undefined' && location.search.includes('autostart')) {
             this.buildWorld();
             return;
         }
         this.node.addComponent(MainMenu);
-        EventBus.on(Events.MENU_START, this.onMenuStart, this);
-        EventBus.on(Events.MENU_EXIT, this.onMenuExit, this);
     }
 
     private onMenuStart(): void {
@@ -47,13 +48,11 @@ export class GameRoot extends Component {
     }
 
     private onMenuExit(): void {
-        // 销毁世界管理器（触发 onDestroy 清理事件监听/输入）
+        // 销毁世界管理器（触发 onDestroy 清理事件监听/输入与节点）
         const wm = this.node.getComponent(WorldManager);
         if (wm) wm.destroy();
-        // 销毁 GameManager 状态（下次选档重载）
-        const gm = this.node.getComponent(GameManager);
-        if (gm) gm.destroy();
-        // 重建主菜单
+        // GameManager 保留（MainMenu.pick 会 reloadFromSlot 重载状态）
+        // 重建主菜单（autostart 模式下首次创建）
         if (!this.node.getComponent(MainMenu)) {
             this.node.addComponent(MainMenu);
         } else {
@@ -64,7 +63,7 @@ export class GameRoot extends Component {
 
     private buildWorld(): void {
         if (this.node.getComponent(WorldManager)) return;
-        // 确保 GameManager 存在（MENU_EXIT 可能销毁了它）
+        // 确保 GameManager 存在（选档流程依赖）
         if (!this.node.getComponent(GameManager)) {
             this.node.addComponent(GameManager);
         }
