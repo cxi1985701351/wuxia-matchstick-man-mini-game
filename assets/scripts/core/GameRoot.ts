@@ -39,15 +39,38 @@ export class GameRoot extends Component {
         }
         this.node.addComponent(MainMenu);
         EventBus.on(Events.MENU_START, this.onMenuStart, this);
+        EventBus.on(Events.MENU_EXIT, this.onMenuExit, this);
     }
 
     private onMenuStart(): void {
-        EventBus.off(Events.MENU_START, this.onMenuStart, this);
         this.buildWorld();
+    }
+
+    private onMenuExit(): void {
+        // 销毁世界管理器（触发 onDestroy 清理事件监听/输入）
+        const wm = this.node.getComponent(WorldManager);
+        if (wm) wm.destroy();
+        // 销毁 GameManager 状态（下次选档重载）
+        const gm = this.node.getComponent(GameManager);
+        if (gm) gm.destroy();
+        // 重建主菜单
+        if (!this.node.getComponent(MainMenu)) {
+            this.node.addComponent(MainMenu);
+        } else {
+            const menu = this.node.getComponent(MainMenu);
+            if (menu) menu.show();
+        }
     }
 
     private buildWorld(): void {
         if (this.node.getComponent(WorldManager)) return;
+        // 确保 GameManager 存在（MENU_EXIT 可能销毁了它）
+        if (!this.node.getComponent(GameManager)) {
+            this.node.addComponent(GameManager);
+        }
+        if (!this.node.getComponent(CombatManager)) {
+            this.node.addComponent(CombatManager);
+        }
         const wm = this.node.addComponent(WorldManager);
         wm.build(this.node);
     }

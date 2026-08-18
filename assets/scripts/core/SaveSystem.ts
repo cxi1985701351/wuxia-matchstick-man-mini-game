@@ -138,6 +138,7 @@ function migrateLegacyIfNeeded(): void {
     writeRaw(slotKey('slot_1'), JSON.stringify(state));
     touchMeta('slot_1');
     writeRaw(CURRENT_KEY, 'slot_1');
+    removeRaw(LEGACY_KEY);  // 迁移后删除旧键，防止 slot_1 被删后重复迁移
     console.log('[SaveSystem] legacy save migrated to slot_1');
 }
 

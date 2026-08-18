@@ -158,6 +158,13 @@ export class MainMenu extends Component {
         });
     }
 
+    /** 显示主菜单（从游戏中 ESC 返回时调用） */
+    show(): void {
+        this.pendingDelete = {};
+        this.refreshSlots();
+        if (this.root) this.root.active = true;
+    }
+
     /** 选档：空位新建 / 占用继续 → 重载状态 → 通知 GameRoot 构建世界 */
     private pick(slotId: string, create: boolean): void {
         if (create) SaveSystem.createSlot(slotId);

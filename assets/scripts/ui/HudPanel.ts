@@ -93,8 +93,8 @@ export class HudPanel extends Component {
         });
         this.weaponLabel.horizontalAlign = Label.HorizontalAlign.RIGHT;
 
-        // ===== 右上角下方：宗门/任务/图鉴/背包快捷键提示 =====
-        makeInkLabel(root, 'V 宗门 ｜ Q 任务 ｜ C 图鉴 ｜ B 背包', {
+        // ===== 右上角下方：快捷键提示（含 ESC 退出）=====
+        makeInkLabel(root, 'V 宗门 ｜ Q 任务 ｜ C 图鉴 ｜ B 背包 ｜ Esc 存档退出', {
             x: 430, y: 282, fontSize: 12, color: '#6A5C44', w: 340, h: 20,
         }).horizontalAlign = Label.HorizontalAlign.RIGHT;
 

@@ -73,4 +73,6 @@ export const Events = {
     TOAST: 'toast',
     /** 主菜单选档完成（GameRoot 收到后构建世界） */
     MENU_START: 'menu-start',
+    /** ESC 退出到主菜单（WorldManager 销毁世界后发出，GameRoot 收到后重建菜单） */
+    MENU_EXIT: 'menu-exit',
 };

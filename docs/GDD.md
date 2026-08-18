@@ -585,3 +585,12 @@ CocosCreator.exe --project D:\shazi\MoJiang --build "platform=web-desktop"
 | 验证 | 伞线：CD1 33.6 → CD2 40.0 → CD3 39.6（-1%，通过 92% 阈值，眩晕补偿）✓；有防对比：伞 CD2 38.9 > 剑 CD2 35.7（↑10%）✓；battle_test 毒 DOT + StatCalculator 回归全绿 ✓ |
 | 待观察 | 塔 12+ 敌我 DPR 比率偏高（3.7+），基于普攻分析；玩家有技能后实际约 1.5-2.0 倍，可接受。拳线 CD3→CD2 仅 +3%（压缩递增），trueStrike+armorBreak 补偿，暂不调整 |
 
+### 13.23 开发记录（2026-08-18 存档迁移修复 + ESC 退出到存档页面）
+
+| 项 | 说明 |
+|---|---|
+| 迁移 Bug 修复 | 根因：`migrateLegacyIfNeeded()` 迁移旧键 `mojiang_save_v1` → slot_1 后未删除旧键 → 用户删除 slot_1 后下次加载 `getCurrentSlotId()=null` 触发再次迁移 → 存档"复活"。修复：迁移后 `removeRaw(LEGACY_KEY)` |
+| ESC 退出到存档页 | ESC 键新增：无面板打开 + 非战斗状态下 → 保存存档 → 销毁世界（Background/World/UI/CameraFollow 子节点）→ 返回主菜单（MainMenu.refreshSlots 重载存档列表）。`WorldManager.onDestroy` 显式清理世界节点 + 引用置空；`GameRoot` 监听 `MENU_EXIT` → 销毁 WorldManager/GameManager → 重建/显示 MainMenu |
+| HUD 提示更新 | 快捷键提示行追加「Esc 存档退出」 |
+| 验证 | menu_test 30 项 ✓（新增 step 8：ESC 回到主菜单 + 存档保留 + 世界销毁）；p5/sect/p4c/battle/region/p4 全量回归 ✓ |
+

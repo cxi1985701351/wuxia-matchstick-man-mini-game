@@ -176,6 +176,36 @@ export class WorldManager extends Component {
         EventBus.off(Events.TOWER_OPEN, this.onTowerOpen, this);
         EventBus.off(Events.TOWER_CLOSE, this.onTowerClose, this);
         EventBus.off(Events.TOWER_CHALLENGE, this.onTowerChallenge, this);
+        // ESC 退出时销毁世界节点（Background/World/UI/CameraFollow 是 Canvas 子节点，
+        // 不随 WorldManager 组件自动销毁，需要手动清理）
+        for (const n of [this.bgLayer?.node, this.worldRoot, this.uiRoot,
+            this.cameraFollow?.node]) {
+            if (n && n.isValid) { n.removeFromParent(); n.destroy(); }
+        }
+        this.bgLayer = null;
+        this.worldRoot = null;
+        this.uiRoot = null;
+        this.fxRoot = null;
+        this.floatRoot = null;
+        this.cameraFollow = null;
+        this.ground = null;
+        this.hud = null;
+        this.dialog = null;
+        this.battleOver = null;
+        this.battleArena = null;
+        this.martialPanel = null;
+        this.codexPanel = null;
+        this.questPanel = null;
+        this.sectPanel = null;
+        this.towerPanel = null;
+        this.toast = null;
+        this.playerNode = null;
+        this.playerController = null;
+        this.npcActors = [];
+        this.towerNode = null;
+        this.signNodes = [];
+        this.currentNpc = null;
+        this.currentRegion = null;
     }
 
     // ============ 场景搭建 ============
@@ -353,6 +383,11 @@ export class WorldManager extends Component {
             else if (this.towerPanel?.isOpen) this.towerPanel.close();
             else if (CombatManager.inst.inBattle) {
                 this.toast?.show('战斗中不可退出，认输请按 Y');
+            } else {
+                // 无面板打开 + 非战斗 → 保存并返回存档页面
+                GameManager.inst.save();
+                EventBus.emit(Events.TOAST, '已保存，返回存档页面');
+                EventBus.emit(Events.MENU_EXIT);
             }
         }
         // 认输
