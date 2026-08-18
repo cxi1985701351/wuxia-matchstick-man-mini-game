@@ -1,4 +1,4 @@
-import { _decorator, Component, Graphics, UITransform } from 'cc';
+import { _decorator, Component, Graphics, UITransform, view } from 'cc';
 import { RegionDef } from '../data/GameTypes.ts';
 
 const { ccclass } = _decorator;
@@ -31,9 +31,15 @@ export class GroundPainter extends Component {
         const W = region.halfW * 2;
         const H = region.halfH * 2;
 
-        // 1. 宣纸米黄底色
+        // 底色外扩 padding：小区域（如村庄 halfW=600 < 屏幕半宽 640）在镜头
+        // clamp 居中时地面盖不满屏幕，边界外会露出远景层（随移动变化）。
+        // 外扩 ≥ 屏幕半宽 + 余量，保证任何区域边界外都是地面底色而非远景。
+        const padX = Math.ceil(view.getVisibleSize().width / 2) + 60;
+        const padY = Math.ceil(view.getVisibleSize().height / 2) + 60;
+
+        // 1. 宣纸米黄底色（外扩）
         g.fillColor.fromHEX('#E8DFC8');
-        g.rect(-region.halfW, -region.halfH, W, H);
+        g.rect(-region.halfW - padX, -region.halfH - padY, W + padX * 2, H + padY * 2);
         g.fill();
 
         // 2. 墨点/草色笔触纹理

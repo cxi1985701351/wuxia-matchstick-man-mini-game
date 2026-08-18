@@ -55,6 +55,14 @@ export class InkBackground extends Component {
 
     private redraw(): void {
         if (!this.gfx) return;
+        // 重置随机序列：每次重绘形状一致（确定性远景），仅视差偏移随镜头变化。
+        // 原实现每次重绘继续消费随机序列 → 远山/云雾形状每次不同，
+        // 玩家移动时背景"闪烁/漂移"，此为该 bug 根因。
+        let s = this.seed;
+        const rnd = () => {
+            s = (s * 16807) % 2147483647;
+            return s / 2147483647;
+        };
         const g = this.gfx;
         g.clear();
         const w = view.getVisibleSize().width;
@@ -72,9 +80,9 @@ export class InkBackground extends Component {
         const inkA = 0.06 + this.tone * 0.05;
         g.fillColor.set(60, 60, 60, Math.round(255 * inkA));
         for (let i = 0; i < 5; i++) {
-            const cx = (this._rand() - 0.5) * w + px * 0.5;
-            const cy = -h / 2 + this._rand() * h * 0.3 + py * 0.5;
-            const r = h * (0.25 + this._rand() * 0.3);
+            const cx = (rnd() - 0.5) * w + px * 0.5;
+            const cy = -h / 2 + rnd() * h * 0.3 + py * 0.5;
+            const r = h * (0.25 + rnd() * 0.3);
             g.circle(cx, cy, r);
             g.fill();
         }
@@ -92,7 +100,7 @@ export class InkBackground extends Component {
             const steps = 20;
             for (let i = 0; i <= steps; i++) {
                 const pos = -w / 2 + (w * i) / steps;
-                const noise = this._rand() * 2 - 1;
+                const noise = rnd() * 2 - 1;
                 const peak = layer.y + Math.sin(i * 0.9 + layer.base * 20) * layer.amp * 0.3 + noise * layer.amp * 0.3;
                 g.lineTo(pos, peak);
             }
@@ -104,9 +112,9 @@ export class InkBackground extends Component {
         // 4. 云雾
         g.fillColor.set(120, 120, 120, 36);
         for (let i = 0; i < 4; i++) {
-            const cy = -h * 0.1 + (this._rand() - 0.5) * h * 0.5 + py * 0.3;
-            const cw = w * (0.3 + this._rand() * 0.5);
-            const cx = (this._rand() - 0.5) * w + px;
+            const cy = -h * 0.1 + (rnd() - 0.5) * h * 0.5 + py * 0.3;
+            const cw = w * (0.3 + rnd() * 0.5);
+            const cx = (rnd() - 0.5) * w + px;
             g.ellipse(cx, cy, cw, h * 0.03);
             g.fill();
         }
