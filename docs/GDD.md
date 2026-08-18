@@ -594,3 +594,14 @@ CocosCreator.exe --project D:\shazi\MoJiang --build "platform=web-desktop"
 | HUD 提示更新 | 快捷键提示行追加「Esc 存档退出」 |
 | 验证 | menu_test 30 项 ✓（新增 step 8：ESC 回到主菜单 + 存档保留 + 世界销毁）；p5/sect/p4c/battle/region/p4 全量回归 ✓ |
 
+### 13.24 开发记录（2026-08-18 P6 测试调优·终章）
+
+| 项 | 说明 |
+|---|---|
+| 伞 CD 递增修复 | 血雨飘零 mult 2.0→2.5（每回合 40.0 > CD1 33.6），迷魂伞烟 mult 1.9→2.2（每回合 39.6 ≈ CD2，眩晕+毒补偿）；`balance_analysis.mjs` 工具验证 7 武器线递增 + 20 层塔难度曲线 |
+| 时长估算 | 必经路线 249s ≈ 4.2min（极速），含正常阅读/探索缓冲 15~20min，完整通关（散人+塔+探索）19min，在 20~25min 目标范围内 |
+| 台词润色 | 沈觅人三句更贴合教学引导（「先跟我学几手防身之术」→「这玉佩背面的印记，连我也参不透」→「活着比什么都重要」）；村童更活泼（亲眼看见天上掉下来）；木桩加细节（刻字「试试看」）；说书人三闻更生动（紫气冲天/南疆血旗/广纳门徒） |
+| 时序修复 | p5_test 长台词检查改为点击后立即 check（toast 持续 ~1.75s，原 sleep(1500) 后已消失）；evalJs 加类型安全（CDP 返回对象时 JSON.stringify）；gmState 加重试+try-catch |
+| 验收 | p5_test 32 项 ✓；menu_test 30 项 ✓；sect/p4c/battle/region/p4 全量回归 ✓ |
+| P6 完成 | 伞/拳 CD 曲线递增 ✓；时长达标 ✓；全量测试通过 ✓ |
+
