@@ -114,11 +114,11 @@ export class HudPanel extends Component {
             },
         });
 
-        // ===== 左下：武学快捷栏 =====
+        // ===== 底部中央：武学快捷栏（原左下 -430,-300 会被触屏摇杆遮挡，移至底部居中）=====
         for (let i = 0; i < 3; i++) {
             const slot = new Node(`skill${i}`);
             root.addChild(slot);
-            slot.setPosition(-430 + i * 92, -300, 0);
+            slot.setPosition(-132 + i * 92, -320, 0);
             const bg = slot.addComponent(Graphics);
             bg.lineWidth = 2;
             bg.strokeColor.fromHEX('#5A4A35');
