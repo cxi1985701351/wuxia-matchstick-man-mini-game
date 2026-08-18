@@ -31,10 +31,13 @@ export class TouchControls extends Component {
     /** 鼠标拖拽激活（无触屏设备上用鼠标模拟摇杆） */
     private mouseActive = false;
 
-    /** 触屏设备检测（?touch=1 强制开启） */
+    /**
+     * 触屏层是否启用：**默认总是显示**（浏览器测试画面与小程序一致）。
+     * URL 带 ?touch=0 可强制隐藏（PC 纯净模式/自动化测试用）。
+     */
     static isTouchEnabled(): boolean {
-        if (typeof location !== 'undefined' && location.search.includes('touch=1')) return true;
-        return !!sys.hasTouch;
+        if (typeof location !== 'undefined' && location.search.includes('touch=0')) return false;
+        return true;
     }
 
     init(wm: WorldManager): void {

@@ -93,9 +93,10 @@ export class HudPanel extends Component {
         });
         this.weaponLabel.horizontalAlign = Label.HorizontalAlign.RIGHT;
 
-        // ===== 右上角下方：快捷键提示（含 ESC 退出）=====
-        makeInkLabel(root, 'V 宗门 ｜ Q 任务 ｜ C 图鉴 ｜ B 背包 ｜ Esc 存档退出', {
-            x: 430, y: 282, fontSize: 12, color: '#6A5C44', w: 340, h: 20,
+        // ===== 右上角下方：操作提示（触屏优先：浏览器测试画面 = 小程序画面）=====
+        // 触屏版：摇杆移动 + 右侧按钮；键盘版仍可用（保留在括号内，简短展示）
+        makeInkLabel(root, '触屏：摇杆移动 · 右侧按钮 ｜ 键盘：B 背包 C 图鉴 Q 任务 V 宗门', {
+            x: 430, y: 282, fontSize: 11, color: '#6A5C44', w: 380, h: 20,
         }).horizontalAlign = Label.HorizontalAlign.RIGHT;
 
         // ===== 存档信息 + 手动存档按钮（右上，快捷键提示下方）=====

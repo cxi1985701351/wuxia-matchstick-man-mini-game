@@ -616,3 +616,11 @@ CocosCreator.exe --project D:\shazi\MoJiang --build "platform=web-desktop"
 | GameRoot 修正 | MENU_START/MENU_EXIT 始终注册（autostart 模式 ESC 退出也可用）；退出后 GameManager 保留（选档时 reloadFromSlot 重载） |
 | 测试 | `tools/touch_test.mjs` 14 项 ✓：触屏层显示/摇杆右左移动/松手停止/交互开对话/四面板开关/战斗隐藏恢复/退出回菜单（合成 MouseEvent 派发，CDP Input.dispatchTouchEvent 在 headless 不可靠）；p5_test 修一处 ESC 误触退出（B 面板门禁后勿按 ESC）；全量回归绿 |
 
+### 13.26 开发记录（2026-08-18 触屏层默认显示：浏览器测试画面 = 小程序画面）
+
+| 项 | 说明 |
+|---|---|
+| 方案 A 落地 | `TouchControls.isTouchEnabled()` 改为**默认恒 true**（浏览器测试画面与小程序一致）；URL `?touch=0` 可强制隐藏（PC 纯净模式/自动化测试用） |
+| HUD 提示适配 | 右上角提示改为触屏优先：「触屏：摇杆移动 · 右侧按钮 ｜ 键盘：B 背包 C 图鉴 Q 任务 V 宗门」（键盘提示保留，双模式共存） |
+| 测试修正 | touch_test 改默认无参验证（16 项 ✓，含 `?touch=0` 隐藏）；p4_test 宗门面板判据改「尚未拜师」（「宗 门」字样同时出现在 HUD/触屏按钮，避免假阳性）；全量回归绿 |
+
